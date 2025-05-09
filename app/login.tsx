@@ -7,10 +7,10 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
-const API_URL = 'http://localhost:8000/api/admin/login'; // Usa tu IP local si estás en desarrollo
+const API_URL = 'http://localhost:8000/api/user/login'; // Usa tu IP local si estás en desarrollo
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState('admin@example.com');
+  const [email, setEmail] = useState('user@example.com');
   const [password, setPassword] = useState('password');
   const [error, setError] = useState('');
   const [token, setToken] = useState('');
@@ -27,7 +27,7 @@ const LoginScreen = () => {
 
       // Aquí guardas el token JWT y el nombre del usuario
       const accessToken = response.data.access_token;
-      const userName = response.data.name; // Asegúrate de que tu API devuelva el nombre
+      const userName = response.data.user.name; // Asegúrate de que tu API devuelva el nombre
       setToken(accessToken);
       setError('');
       console.log('Login exitoso', accessToken);
