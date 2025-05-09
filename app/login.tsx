@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import axios from 'axios';
 
-import { useRouter } from 'expo-router';
+import { useRouter, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -60,6 +60,10 @@ const LoginScreen = () => {
       <Button title="Iniciar sesión" onPress={handleLogin} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {token ? <Text style={styles.token}>Token: {token}</Text> : null}
+      
+      <Link href="/register">
+        <Text style={{ color: 'blue', marginTop: 20 }}>¿No tienes cuenta? Regístrate aquí</Text>
+      </Link>
     </View>
   );
 };

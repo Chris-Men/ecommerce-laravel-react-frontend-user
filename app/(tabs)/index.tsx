@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Button, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useRouter, Link } from 'expo-router';
+// import { useRouter, Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen() {
@@ -33,16 +34,14 @@ export default function HomeScreen() {
       <ThemedView style={styles.header}>
         {/* Navbar */}
         <ThemedView style={styles.navbar}>
-          <Link href="/admins"><ThemedText style={styles.linkText}>Admins</ThemedText></Link>
-          <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
+          {/* <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
           <Link href="/categories"><ThemedText style={styles.linkText}>Categories</ThemedText></Link>
           <Link href="/colors"><ThemedText style={styles.linkText}>Colors</ThemedText></Link>
           <Link href="/coupons"><ThemedText style={styles.linkText}>Coupons</ThemedText></Link>
           <Link href="/orders"><ThemedText style={styles.linkText}>Orders</ThemedText></Link>
           <Link href="/products"><ThemedText style={styles.linkText}>Products</ThemedText></Link>
           <Link href="/reviews"><ThemedText style={styles.linkText}>Reviews</ThemedText></Link>
-          <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link>
-          <Link href="/users"><ThemedText style={styles.linkText}>Users</ThemedText></Link>
+          <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link> */}
         </ThemedView>
       </ThemedView>
       <ThemedText type="title">¡Bienvenido {userName}!</ThemedText>
