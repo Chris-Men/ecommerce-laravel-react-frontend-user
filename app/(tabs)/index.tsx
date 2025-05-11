@@ -1,14 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { Button, StyleSheet } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 // import { useRouter, Link } from 'expo-router';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
+// Definición de la interfaz Product
+interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  qty: number;
+  price: number;
+  description: string;
+  thumbnail?: string; // Opcional
+}
 
 export default function HomeScreen() {
   const router = useRouter();
   const [userName, setUserName] = useState('');
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
 
   const handleLogout = async () => {
     await AsyncStorage.removeItem('token');
@@ -25,31 +39,64 @@ export default function HomeScreen() {
         console.log('No se encontró el nombre del usuario en AsyncStorage'); // Ayuda a depurar
       }
     };
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/products'); // Cambia la URL según sea necesario
+        setProducts(response.data);
+      } catch (error) {
+        console.error('Error al obtener productos:', error);
+      }
+    };
+
     fetchUserName();
+    fetchProducts();
   }, []);
 
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+  };
+
   return (
-    // Contenedor principal
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
         {/* Navbar */}
         <ThemedView style={styles.navbar}>
-          {/* <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
-          <Link href="/categories"><ThemedText style={styles.linkText}>Categories</ThemedText></Link>
-          <Link href="/colors"><ThemedText style={styles.linkText}>Colors</ThemedText></Link>
-          <Link href="/coupons"><ThemedText style={styles.linkText}>Coupons</ThemedText></Link>
-          <Link href="/orders"><ThemedText style={styles.linkText}>Orders</ThemedText></Link>
-          <Link href="/products"><ThemedText style={styles.linkText}>Products</ThemedText></Link>
-          <Link href="/reviews"><ThemedText style={styles.linkText}>Reviews</ThemedText></Link>
-          <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link> */}
+          <ThemedText type="title" style={styles.welcomeText}>
+            ¡Bienvenido {userName}!
+          </ThemedText>
+          <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+            <Text style={styles.menuButtonText}>☰</Text>
+          </TouchableOpacity>
+          {menuVisible && (
+            <View style={styles.dropdownMenu}>
+              <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
+                <Text style={styles.menuItemText}>Cerrar sesión</Text>
+              </TouchableOpacity>
+              {/* Puedes agregar más opciones aquí */}
+              <TouchableOpacity style={styles.menuItem}>
+                <Text style={styles.menuItemText}>Otra Opción</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ThemedView>
       </ThemedView>
-      <ThemedText type="title">¡Bienvenido {userName}!</ThemedText>
 
-      {/* Botón de logout */}
       <ThemedView style={{ marginVertical: 20 }}>
-        <Button title="Cerrar sesión" onPress={handleLogout} />
+        {/* Aquí puedes agregar más contenido si es necesario */}
       </ThemedView>
+
+      {/* Lista de productos */}
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.productCard}>
+            <Text style={styles.productName}>{item.name}</Text>
+            <Text style={styles.productPrice}>${item.price}</Text>
+            <Text style={styles.productDescription}>{item.description}</Text>
+          </View>
+        )}
+      />
     </ThemedView>
   );
 }
@@ -57,7 +104,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // Cambia a flex-start para que la lista esté en la parte superior
     alignItems: 'center',
     padding: 20,
   },
@@ -69,15 +116,236 @@ const styles = StyleSheet.create({
     backgroundColor: 'dark',
     zIndex: 1000,
     paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   navbar: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    flex: 1,
+    alignItems: 'center',
   },
-  linkText: {
+  welcomeText: {
+    flex: 1,
+    textAlign: 'left',
+    paddingLeft: 10,
+    color: '#fff', // Cambia el color según sea necesario
+  },
+  menuButton: {
     padding: 10,
+  },
+  menuButtonText: {
+    color: '#fff', // Cambia el color según sea necesario
+    fontSize: 24,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    right: 0,
+    top: 40,
+    backgroundColor: 'white',
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  menuItem: {
+    padding: 10,
+  },
+  menuItemText: {
+    color: '#000',
+  },
+  productCard: {
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    marginVertical: 10,
+    borderRadius: 5,
+    width: '100%',
+  },
+  productName: {
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  productPrice: {
+    color: 'green',
     fontSize: 16,
-    color: '#007bff',
+  },
+  productDescription: {
+    color: '#555',
   },
 });
+// import React, { useEffect, useState } from 'react';
+// import { StyleSheet, View, Text, TouchableOpacity, FlatList } from 'react-native';
+// import { ThemedText } from '@/components/ThemedText';
+// import { ThemedView } from '@/components/ThemedView';
+// import { useRouter } from 'expo-router';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import axios from 'axios';
+
+// // Definición de la interfaz Review
+// interface Review {
+//   id: number;
+//   product_id: number;
+//   user_id: number;
+//   title: string;
+//   body: string;
+//   rating: number;
+// }
+
+// export default function HomeScreen() {
+//   const router = useRouter();
+//   const [userName, setUserName] = useState('');
+//   const [menuVisible, setMenuVisible] = useState(false);
+//   const [reviews, setReviews] = useState<Review[]>([]);
+
+//   const handleLogout = async () => {
+//     await AsyncStorage.removeItem('token');
+//     await AsyncStorage.removeItem('userName');
+//     router.replace('/login');
+//   };
+
+//   useEffect(() => {
+//     const fetchUserName = async () => {
+//       const name = await AsyncStorage.getItem('userName');
+//       if (name) {
+//         setUserName(name);
+//       } else {
+//         console.log('No se encontró el nombre del usuario en AsyncStorage');
+//       }
+//     };
+
+//     const fetchReviews = async () => {
+//       try {
+//         const response = await axios.get('http://localhost:8000/api/admin/reviews'); // Cambia la URL según sea necesario
+//         setReviews(response.data);
+//       } catch (error) {
+//         console.error('Error al obtener reseñas:', error);
+//       }
+//     };
+
+//     fetchUserName();
+//     fetchReviews();
+//   }, []);
+
+//   const toggleMenu = () => {
+//     setMenuVisible(!menuVisible);
+//   };
+
+//   return (
+//     <ThemedView style={styles.container}>
+//       <ThemedView style={styles.header}>
+//         <ThemedView style={styles.navbar}>
+//           <ThemedText type="title" style={styles.welcomeText}>
+//             ¡Bienvenido {userName}!
+//           </ThemedText>
+//           <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+//             <Text style={styles.menuButtonText}>☰</Text>
+//           </TouchableOpacity>
+//           {menuVisible && (
+//             <View style={styles.dropdownMenu}>
+//               <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
+//                 <Text style={styles.menuItemText}>Cerrar sesión</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity style={styles.menuItem}>
+//                 <Text style={styles.menuItemText}>Otra Opción</Text>
+//               </TouchableOpacity>
+//             </View>
+//           )}
+//         </ThemedView>
+//       </ThemedView>
+
+//       <ThemedView style={{ marginVertical: 20 }} />
+
+//       {/* Lista de reseñas */}
+//       <FlatList
+//         data={reviews}
+//         keyExtractor={(item) => item.id.toString()}
+//         renderItem={({ item }) => (
+//           <View style={styles.reviewCard}>
+//             <Text style={styles.reviewTitle}>{item.title}</Text>
+//             <Text style={styles.reviewRating}>Calificación: {item.rating}</Text>
+//             <Text style={styles.reviewBody}>{item.body}</Text>
+//           </View>
+//         )}
+//       />
+//     </ThemedView>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     justifyContent: 'flex-start',
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   header: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     backgroundColor: 'dark',
+//     zIndex: 1000,
+//     paddingVertical: 10,
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//   },
+//   navbar: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     flex: 1,
+//     alignItems: 'center',
+//   },
+//   welcomeText: {
+//     flex: 1,
+//     textAlign: 'left',
+//     paddingLeft: 10,
+//     color: '#fff',
+//   },
+//   menuButton: {
+//     padding: 10,
+//   },
+//   menuButtonText: {
+//     color: '#fff',
+//     fontSize: 24,
+//   },
+//   dropdownMenu: {
+//     position: 'absolute',
+//     right: 0,
+//     top: 40,
+//     backgroundColor: 'white',
+//     borderRadius: 5,
+//     shadowColor: '#000',
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.3,
+//     shadowRadius: 4,
+//     elevation: 5,
+//   },
+//   menuItem: {
+//     padding: 10,
+//   },
+//   menuItemText: {
+//     color: '#000',
+//   },
+//   reviewCard: {
+//     backgroundColor: '#f9f9f9',
+//     padding: 15,
+//     marginVertical: 10,
+//     borderRadius: 5,
+//     width: '100%',
+//   },
+//   reviewTitle: {
+//     fontWeight: 'bold',
+//     fontSize: 18,
+//   },
+//   reviewRating: {
+//     color: 'green',
+//     fontSize: 16,
+//   },
+//   reviewBody: {
+//     color: '#555',
+//   },
+// });
