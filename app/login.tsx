@@ -1,4 +1,3 @@
-// LoginScreen.tsx
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import axios from 'axios';
@@ -26,17 +25,24 @@ const LoginScreen = () => {
       console.log('Respuesta de la API:', response.data); // Verificar la respuesta
 
       // Aquí guardas el token JWT y el nombre del usuario
-      const accessToken = response.data.access_token;
+      const accessToken = response.data.token;
       const userName = response.data.user.name; // Asegúrate de que tu API devuelva el nombre
       setToken(accessToken);
       setError('');
       console.log('Login exitoso', accessToken);
+      console.log('Nombre de usuario:', userName);
 
-      await AsyncStorage.setItem('token', accessToken);
-      await AsyncStorage.setItem('userName', userName); // Guardar el nombre del usuario
-      router.replace('/(tabs)'); // Redirige al index de (tabs)
+      if (accessToken) {
+        await AsyncStorage.setItem('token', accessToken);
+        await AsyncStorage.setItem('userName', userName);
+        console.log('Token y nombre guardados en AsyncStorage');
+        router.replace('/(tabs)'); // Redirige al index de (tabs)
+      } else {
+        console.error('No se pudo obtener el token');
+        setError('Error al obtener el token');
+      }
     } catch (err: any) {
-      console.error(err);
+      console.error('Error en el inicio de sesión:', err);
       setError('Credenciales inválidas o error de conexión');
     }
   };
@@ -60,7 +66,7 @@ const LoginScreen = () => {
       <Button title="Iniciar sesión" onPress={handleLogin} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {token ? <Text style={styles.token}>Token: {token}</Text> : null}
-      
+
       <Link href="/register">
         <Text style={{ color: 'blue', marginTop: 20 }}>¿No tienes cuenta? Regístrate aquí</Text>
       </Link>

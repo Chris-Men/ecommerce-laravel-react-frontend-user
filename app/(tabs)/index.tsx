@@ -39,9 +39,23 @@ export default function HomeScreen() {
         console.log('No se encontró el nombre del usuario en AsyncStorage'); // Ayuda a depurar
       }
     };
+
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/products'); // Cambia la URL según sea necesario
+        const token = await AsyncStorage.getItem('token'); // Obtener el token
+        console.log('Token recuperado:', token); // Verifica que el token no sea null o undefined
+
+        if (!token) {
+          console.error('Token no disponible, redirigiendo a login');
+          router.replace('/login'); // Redirige si no hay token
+          return;
+        }
+
+        const response = await axios.get('http://localhost:8000/api/products', {
+          headers: {
+            Authorization: `Bearer ${token}`, // Asegúrate de que el token sea válido
+          },
+        });
         setProducts(response.data);
       } catch (error) {
         console.error('Error al obtener productos:', error);
@@ -50,7 +64,7 @@ export default function HomeScreen() {
 
     fetchUserName();
     fetchProducts();
-  }, []);
+  }, [router]);
 
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
@@ -176,176 +190,3 @@ const styles = StyleSheet.create({
     color: '#555',
   },
 });
-// import React, { useEffect, useState } from 'react';
-// import { StyleSheet, View, Text, TouchableOpacity, FlatList } from 'react-native';
-// import { ThemedText } from '@/components/ThemedText';
-// import { ThemedView } from '@/components/ThemedView';
-// import { useRouter } from 'expo-router';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import axios from 'axios';
-
-// // Definición de la interfaz Review
-// interface Review {
-//   id: number;
-//   product_id: number;
-//   user_id: number;
-//   title: string;
-//   body: string;
-//   rating: number;
-// }
-
-// export default function HomeScreen() {
-//   const router = useRouter();
-//   const [userName, setUserName] = useState('');
-//   const [menuVisible, setMenuVisible] = useState(false);
-//   const [reviews, setReviews] = useState<Review[]>([]);
-
-//   const handleLogout = async () => {
-//     await AsyncStorage.removeItem('token');
-//     await AsyncStorage.removeItem('userName');
-//     router.replace('/login');
-//   };
-
-//   useEffect(() => {
-//     const fetchUserName = async () => {
-//       const name = await AsyncStorage.getItem('userName');
-//       if (name) {
-//         setUserName(name);
-//       } else {
-//         console.log('No se encontró el nombre del usuario en AsyncStorage');
-//       }
-//     };
-
-//     const fetchReviews = async () => {
-//       try {
-//         const response = await axios.get('http://localhost:8000/api/admin/reviews'); // Cambia la URL según sea necesario
-//         setReviews(response.data);
-//       } catch (error) {
-//         console.error('Error al obtener reseñas:', error);
-//       }
-//     };
-
-//     fetchUserName();
-//     fetchReviews();
-//   }, []);
-
-//   const toggleMenu = () => {
-//     setMenuVisible(!menuVisible);
-//   };
-
-//   return (
-//     <ThemedView style={styles.container}>
-//       <ThemedView style={styles.header}>
-//         <ThemedView style={styles.navbar}>
-//           <ThemedText type="title" style={styles.welcomeText}>
-//             ¡Bienvenido {userName}!
-//           </ThemedText>
-//           <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-//             <Text style={styles.menuButtonText}>☰</Text>
-//           </TouchableOpacity>
-//           {menuVisible && (
-//             <View style={styles.dropdownMenu}>
-//               <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
-//                 <Text style={styles.menuItemText}>Cerrar sesión</Text>
-//               </TouchableOpacity>
-//               <TouchableOpacity style={styles.menuItem}>
-//                 <Text style={styles.menuItemText}>Otra Opción</Text>
-//               </TouchableOpacity>
-//             </View>
-//           )}
-//         </ThemedView>
-//       </ThemedView>
-
-//       <ThemedView style={{ marginVertical: 20 }} />
-
-//       {/* Lista de reseñas */}
-//       <FlatList
-//         data={reviews}
-//         keyExtractor={(item) => item.id.toString()}
-//         renderItem={({ item }) => (
-//           <View style={styles.reviewCard}>
-//             <Text style={styles.reviewTitle}>{item.title}</Text>
-//             <Text style={styles.reviewRating}>Calificación: {item.rating}</Text>
-//             <Text style={styles.reviewBody}>{item.body}</Text>
-//           </View>
-//         )}
-//       />
-//     </ThemedView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     justifyContent: 'flex-start',
-//     alignItems: 'center',
-//     padding: 20,
-//   },
-//   header: {
-//     position: 'absolute',
-//     top: 0,
-//     left: 0,
-//     right: 0,
-//     backgroundColor: 'dark',
-//     zIndex: 1000,
-//     paddingVertical: 10,
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//   },
-//   navbar: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     flex: 1,
-//     alignItems: 'center',
-//   },
-//   welcomeText: {
-//     flex: 1,
-//     textAlign: 'left',
-//     paddingLeft: 10,
-//     color: '#fff',
-//   },
-//   menuButton: {
-//     padding: 10,
-//   },
-//   menuButtonText: {
-//     color: '#fff',
-//     fontSize: 24,
-//   },
-//   dropdownMenu: {
-//     position: 'absolute',
-//     right: 0,
-//     top: 40,
-//     backgroundColor: 'white',
-//     borderRadius: 5,
-//     shadowColor: '#000',
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 4,
-//     elevation: 5,
-//   },
-//   menuItem: {
-//     padding: 10,
-//   },
-//   menuItemText: {
-//     color: '#000',
-//   },
-//   reviewCard: {
-//     backgroundColor: '#f9f9f9',
-//     padding: 15,
-//     marginVertical: 10,
-//     borderRadius: 5,
-//     width: '100%',
-//   },
-//   reviewTitle: {
-//     fontWeight: 'bold',
-//     fontSize: 18,
-//   },
-//   reviewRating: {
-//     color: 'green',
-//     fontSize: 16,
-//   },
-//   reviewBody: {
-//     color: '#555',
-//   },
-// });
