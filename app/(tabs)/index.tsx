@@ -1,28 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, Image, Dimensions, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-// import { useRouter, Link } from 'expo-router';
 import { useRouter, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-// Definición de la interfaz Product
-interface Product {
+// Definición de la interfaz Category
+interface Category {
     id: number;
     name: string;
-    slug: string;
-    qty: number;
-    price: number;
-    description: string;
-    thumbnail?: string; // Opcional
 }
 
 export default function HomeScreen() {
     const router = useRouter();
     const [userName, setUserName] = useState('');
     const [menuVisible, setMenuVisible] = useState(false);
-    const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleLogout = async () => {
         await AsyncStorage.removeItem('token');
@@ -40,91 +35,110 @@ export default function HomeScreen() {
             }
         };
 
-        const fetchProducts = async () => {
+        const fetchCategories = async () => {
             try {
-                const token = await AsyncStorage.getItem('token'); // Obtener el token
-                console.log('Token recuperado:', token); // Verifica que el token no sea null o undefined
+                const token = await AsyncStorage.getItem('token');
+                console.log('Token recuperado:', token);
 
                 if (!token) {
                     console.error('Token no disponible, redirigiendo a login');
-                    router.replace('/login'); // Redirige si no hay token
+                    router.replace('/login');
                     return;
                 }
 
-                const response = await axios.get('http://localhost:8000/api/products', {
+                const response = await axios.get('http://localhost:8000/api/categories', {
                     headers: {
-                        Authorization: `Bearer ${token}`, // Asegúrate de que el token sea válido
+                        Authorization: `Bearer ${token}`,
                     },
                 });
-                setProducts(response.data);
+                console.log('Respuesta de categorías:', response.data); // Verifica la respuesta
+                setCategories(response.data.categories);
+                console.log('Categorías guardadas en el estado:', response.data); // Verifica el estado
             } catch (error) {
-                console.error('Error al obtener productos:', error);
+                console.error('Error al obtener categorías:', error);
             }
         };
 
         fetchUserName();
-        fetchProducts();
+        fetchCategories();
     }, [router]);
 
     const toggleMenu = () => {
         setMenuVisible(!menuVisible);
     };
 
+    const handleCategoryPress = (category: Category) => {
+        console.log('Categoría seleccionada:', category);
+        // Aquí puedes navegar a otra pantalla o realizar otra acción
+        // router.push(`/categories/${category.slug}`); // Ejemplo de navegación
+    };
+
+    const filteredCategories = categories
+        .filter(category =>
+            category.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+
     return (
-        <ThemedView style={styles.container}>
-            <ThemedView style={styles.header}>
-                {/* Navbar */}
-                <ThemedView style={styles.navbar}>
-                    <ThemedText type="title" style={styles.welcomeText}>
-                        ¡Bienvenido {userName}!
-                    </ThemedText>
-                    <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
-                    <Link href="/categories"><ThemedText style={styles.linkText}>Categories</ThemedText></Link>
-                    <Link href="/colors"><ThemedText style={styles.linkText}>Colors</ThemedText></Link>
-                    <Link href="/coupons"><ThemedText style={styles.linkText}>Coupons</ThemedText></Link>
-                    <Link href="/orders"><ThemedText style={styles.linkText}>Orders</ThemedText></Link>
-                    <Link href="/products"><ThemedText style={styles.linkText}>Products</ThemedText></Link>
-                    <Link href="/reviews"><ThemedText style={styles.linkText}>Reviews</ThemedText></Link>
-                    <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link>
-                    <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-                        <Text style={styles.menuButtonText}>☰</Text>
-                    </TouchableOpacity>
-                    {menuVisible && (
-                        <View style={styles.dropdownMenu}>
-                            <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
-                                <Text style={styles.menuItemText}>Cerrar sesión</Text>
-                            </TouchableOpacity>
-                            {/* Puedes agregar más opciones aquí */}
-                            <TouchableOpacity style={styles.menuItem}>
-                                <Text style={styles.menuItemText}>Otra Opción</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ThemedView style={styles.container}>
+                <ThemedView style={styles.header}>
+                    {/* Navbar */}
+                    <ThemedView style={styles.navbar}>
+                        <ThemedText type="title" style={styles.welcomeText}>
+                            ¡Bienvenido {userName}!
+                        </ThemedText>
+                        <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
+                        <Link href="/categories"><ThemedText style={styles.linkText}>Categories</ThemedText></Link>
+                        <Link href="/colors"><ThemedText style={styles.linkText}>Colors</ThemedText></Link>
+                        <Link href="/coupons"><ThemedText style={styles.linkText}>Coupons</ThemedText></Link>
+                        <Link href="/orders"><ThemedText style={styles.linkText}>Orders</ThemedText></Link>
+                        <Link href="/products"><ThemedText style={styles.linkText}>Products</ThemedText></Link>
+                        <Link href="/reviews"><ThemedText style={styles.linkText}>Reviews</ThemedText></Link>
+                        <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link>
+                        <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+                            <Text style={styles.menuButtonText}>☰</Text>
+                        </TouchableOpacity>
+                        {menuVisible && (
+                            <View style={styles.dropdownMenu}>
+                                <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
+                                    <Text style={styles.menuItemText}>Cerrar sesión</Text>
+                                </TouchableOpacity>
+                                {/* Puedes agregar más opciones aquí */}
+                                <TouchableOpacity style={styles.menuItem}>
+                                    <Text style={styles.menuItemText}>Otra Opción</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </ThemedView>
                 </ThemedView>
-            </ThemedView>
 
-            <ThemedView style={{ marginVertical: 20 }}>
-                {/* Aquí puedes agregar más contenido si es necesario */}
-            </ThemedView>
+                <ThemedView style={{ marginVertical: 60 }}>
+                    <TextInput
+                        placeholder="Buscar categorías..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        style={[styles.searchInput, { marginBottom: -30 }]}
+                    />
+                </ThemedView>
 
-            {/* Lista de productos */}
-            <FlatList
-                data={products}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                    <View style={styles.productCard}>
-                        <Image
-                            source={{ uri: item.thumbnail }} // Asegúrate de que 'thumbnail' sea la URL de la imagen
-                            style={styles.productImage} // Define un estilo para la imagen
-                            resizeMode="contain" // Ajusta el modo de visualización según tus necesidades
-                        />
-                        <Text style={styles.productName}>{item.name}</Text>
-                        <Text style={styles.productPrice}>${item.price}</Text>
-                        <Text style={styles.productDescription}>{item.description}</Text>
-                    </View>
-                )}
-            />
-        </ThemedView>
+                {/* Lista de categorías */}
+                <View style={styles.categoriesContainer}>
+                    {filteredCategories.map((item) => (
+                        <TouchableOpacity key={item.id} onPress={() => handleCategoryPress(item)}>
+                            <View style={styles.categoryCard}>
+                                <Image
+                                    source={{ uri: 'https://media.istockphoto.com/id/1147544807/vector/thumbnail-image-vector-graphic.jpg?s=612x612&w=0&k=20&c=rnCKVbdxqkjlcs3xH87-9gocETqpspHFXu5dIGB4wuM=' }}
+                                    style={styles.categoryImage}
+                                />
+                                <Text style={styles.categoryName}>{item.name}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ThemedView>
+        </ScrollView >
     );
 }
 
@@ -134,13 +148,14 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-start', // Cambia a flex-start para que la lista esté en la parte superior
         alignItems: 'center',
         padding: 20,
+        backgroundColor: '#FFFFFF', // Establecer el fondo blanco
     },
     header: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'dark',
+        backgroundColor: 'dark', // Cambia a 'white' si quieres que el header también sea blanco
         zIndex: 1000,
         paddingVertical: 10,
         flexDirection: 'row',
@@ -150,6 +165,7 @@ const styles = StyleSheet.create({
     navbar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        backgroundColor: 'white',
         flex: 1,
         alignItems: 'center',
     },
@@ -157,13 +173,13 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'left',
         paddingLeft: 10,
-        color: '#fff', // Cambia el color según sea necesario
+        color: '#000', // Cambia el color según sea necesario
     },
     menuButton: {
         padding: 10,
     },
     menuButtonText: {
-        color: '#fff', // Cambia el color según sea necesario
+        color: '#000', // Cambia el color según sea necesario
         fontSize: 24,
     },
     dropdownMenu: {
@@ -184,33 +200,46 @@ const styles = StyleSheet.create({
     menuItemText: {
         color: '#000',
     },
-    productCard: {
+    categoriesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 10, // opcional si usas React Native v0.71+
+        marginTop: 5,
+    },
+    categoryCard: {
         backgroundColor: '#f9f9f9',
         padding: 15,
-        marginVertical: 10,
+        margin: 10,
         borderRadius: 5,
-        width: '100%',
+        width: Dimensions.get('window').width * 0.4, // Asegúrate que no supere el 50% para que se acomoden dos por fila
+        height: 300,
+        alignItems: 'center',
     },
-    productImage: {
-        width: '100%', // Ajusta el ancho según sea necesario
-        height: 200, // Ajusta la altura según sea necesario
-        borderRadius: 5, // Opcional, para bordes redondeados
-        marginBottom: 10, // Espacio entre la imagen y el texto
+    categoryImage: {
+        width: '80%', // Ancho responsivo de la imagen
+        height: '70%', // Altura responsiva de la imagen
+        marginBottom: 10, // Espacio entre la imagen y el nombre
     },
-    productName: {
+    categoryName: {
         fontWeight: 'bold',
-        fontSize: 18,
-    },
-    productPrice: {
-        color: 'green',
         fontSize: 16,
-    },
-    productDescription: {
-        color: '#555',
+        textAlign: 'center', // Centrar el texto
     },
     linkText: {
         padding: 10,
         fontSize: 16,
         color: '#007bff',
+    },
+    searchInput: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 20,
+        width: '100%',
+        borderRadius: 5,
+    },
+    scrollContent: {
+        paddingBottom: 40,
     },
 });

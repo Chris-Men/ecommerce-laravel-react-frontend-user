@@ -9,17 +9,19 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  // Establecer un esquema de color por defecto a 'light'
+  const colorScheme = useColorScheme() || 'light'; // Si no hay esquema, usar 'light'
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors[colorScheme].tint,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: {
           display: 'none', // Ocultar el footer (tab bar)
+          backgroundColor: Colors[colorScheme].background || '#FFFFFF', // Color de fondo blanco
         },
       }}>
       <Tabs.Screen
