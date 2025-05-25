@@ -10,6 +10,7 @@ import axios from 'axios';
 interface Category {
     id: number;
     name: string;
+    image: string;
 }
 
 export default function HomeScreen() {
@@ -129,8 +130,9 @@ export default function HomeScreen() {
                         <TouchableOpacity key={item.id} onPress={() => handleCategoryPress(item)}>
                             <View style={styles.categoryCard}>
                                 <Image
-                                    source={{ uri: 'https://media.istockphoto.com/id/1147544807/vector/thumbnail-image-vector-graphic.jpg?s=612x612&w=0&k=20&c=rnCKVbdxqkjlcs3xH87-9gocETqpspHFXu5dIGB4wuM=' }}
+                                    source={{ uri: `http://localhost:8000/storage/${item.image}` }}
                                     style={styles.categoryImage}
+                                    resizeMode="cover"
                                 />
                                 <Text style={styles.categoryName}>{item.name}</Text>
                             </View>
