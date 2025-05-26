@@ -47,7 +47,7 @@ export default function HomeScreen() {
                     return;
                 }
 
-                const response = await axios.get('http://localhost:8000/api/categories', {
+                const response = await axios.get('http://localhost:8000/api/user/categories', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -71,7 +71,7 @@ export default function HomeScreen() {
     const handleCategoryPress = (category: Category) => {
         console.log('Categoría seleccionada:', category);
         // Aquí puedes navegar a otra pantalla o realizar otra acción
-        // router.push(`/categories/${category.slug}`); // Ejemplo de navegación
+        router.push({ pathname: '/products', params: { categoryId: category.id.toString(), categoryName: category.name } });
     };
 
     const filteredCategories = categories
