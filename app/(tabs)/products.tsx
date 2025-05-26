@@ -8,8 +8,8 @@ interface Product {
     id: number;
     name: string;
     image: string;
+    thumbnail: string;
     price: string;
-    // Agrega otros campos si es necesario
 }
 
 export default function ProductScreen() {
@@ -20,21 +20,22 @@ export default function ProductScreen() {
         const fetchProducts = async () => {
             try {
                 const token = await AsyncStorage.getItem('token');
-                const response = await axios.get(`http://localhost:8000/api/categories/${categoryId}/products`, {
+                const response = await axios.get(`http://localhost:8000/api/user/categories/${categoryName}/products`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
+                console.log('Productos recibidos:', response.data.products);
                 setProducts(response.data.products);
             } catch (error) {
                 console.error('Error al obtener productos:', error);
             }
         };
 
-        if (categoryId) {
+        if (categoryId && categoryName) {
             fetchProducts();
         }
-    }, [categoryId]);
+    }, [categoryId, categoryName]);
 
     return (
         <View style={styles.container}>
@@ -45,7 +46,7 @@ export default function ProductScreen() {
                 renderItem={({ item }) => (
                     <View style={styles.productCard}>
                         <Image
-                            source={{ uri: `http://localhost:8000/storage/${item.image}` }}
+                            source={{ uri: `http://localhost:8000/storage/${item.thumbnail}` }}
                             style={styles.productImage}
                         />
                         <Text style={styles.productName}>{item.name}</Text>
