@@ -90,14 +90,14 @@ export default function HomeScreen() {
                         <ThemedText type="title" style={styles.welcomeText}>
                             ¡Bienvenido {userName}!
                         </ThemedText>
-                        <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
+                        {/* <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
                         <Link href="/categories"><ThemedText style={styles.linkText}>Categories</ThemedText></Link>
                         <Link href="/colors"><ThemedText style={styles.linkText}>Colors</ThemedText></Link>
                         <Link href="/coupons"><ThemedText style={styles.linkText}>Coupons</ThemedText></Link>
                         <Link href="/orders"><ThemedText style={styles.linkText}>Orders</ThemedText></Link>
                         <Link href="/products"><ThemedText style={styles.linkText}>Products</ThemedText></Link>
                         <Link href="/reviews"><ThemedText style={styles.linkText}>Reviews</ThemedText></Link>
-                        <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link>
+                        <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link> */}
                         <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
                             <Text style={styles.menuButtonText}>☰</Text>
                         </TouchableOpacity>
