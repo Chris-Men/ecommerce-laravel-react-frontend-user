@@ -2,10 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { isAxiosError } from 'axios';
-import Toast from 'react-native-toast-message';
-
-
 
 export default function ProductDetailScreen() {
     const { id, name, thumbnail, brand, size, color, qty, price } = useLocalSearchParams();
@@ -18,58 +14,15 @@ export default function ProductDetailScreen() {
         router.replace('/login'); // Vuelve a la pantalla de login
     };
 
-    const handleAddToCart = async () => {
-        console.log('Intentando agregar al carrito...');
-
+    const handleAddToCart = () => {
         if (Number(quantity) > Number(qty)) {
             Alert.alert('Cantidad no disponible', `Solo hay ${qty} en inventario`);
-            console.log('Cantidad solicitada mayor al inventario');
             return;
         }
 
-        try {
-            const token = await AsyncStorage.getItem('token');
-            console.log('Token obtenido:', token);
-
-            const payload = {
-                product_id: id,
-                qty: Number(quantity),
-            };
-
-            console.log('Datos enviados al backend:', payload);
-
-            const response = await axios.post('http://localhost:8000/api/cart', payload, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: 'application/json',
-                },
-            });
-
-            console.log('Respuesta del backend:', response.data);
-
-            if (response.status === 200 || response.status === 201) {
-                setMenuVisible(false); // Asegúrate de cerrar el menú
-                console.log('Mostrando alerta de agregado al carrito');
-                Toast.show({
-                    type: 'custom',
-                    text1: 'Agregado al carrito',
-                    text2: `${name} x ${quantity}`,
-                    position: 'top', // Usa top, pero en el componente lo centramos
-                    visibilityTime: 2000, // 2 segundos
-                    autoHide: true,
-                });
-            }
-        } catch (error) {
-            if (isAxiosError(error) && error.response) {
-                console.log('Error en la respuesta de Axios:', error.response.data);
-                Alert.alert('Error', error.response.data.message || 'No se pudo agregar al carrito');
-            } else {
-                console.log('Error desconocido:', error);
-                Alert.alert('Error', 'Error de red o del servidor');
-            }
-        }
+        // Aquí puedes manejar la lógica para agregar al carrito
+        Alert.alert('Agregado al carrito', `${name} x ${quantity}`);
     };
-
     const toggleMenu = () => {
         setMenuVisible(!menuVisible);
     };

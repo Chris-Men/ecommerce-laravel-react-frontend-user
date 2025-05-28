@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator } from 'react-native';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
+import { CustomToast } from '@/components/CustomToast'; // Asegúrate que la ruta es correcta
 
 export default function Layout() {
   const [loading, setLoading] = useState(true);
@@ -36,5 +38,15 @@ export default function Layout() {
     );
   }
 
-  return <Slot />;
+  // Aquí envuelves el Slot con el Toast
+  return (
+    <>
+      <Slot />
+      <Toast
+        config={{
+          custom: (props) => <CustomToast {...props} />,
+        }}
+      />
+    </>
+  );
 }

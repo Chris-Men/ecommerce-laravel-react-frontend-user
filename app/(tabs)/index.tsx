@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useRouter, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons';
 
 // Definición de la interfaz Category
 interface Category {
@@ -82,39 +83,34 @@ export default function HomeScreen() {
 
 
     return (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-            <ThemedView style={styles.container}>
-                <ThemedView style={styles.header}>
-                    {/* Navbar */}
-                    <ThemedView style={styles.navbar}>
-                        <ThemedText type="title" style={styles.welcomeText}>
-                            ¡Bienvenido {userName}!
-                        </ThemedText>
-                        {/* <Link href="/brands"><ThemedText style={styles.linkText}>Brands</ThemedText></Link>
-                        <Link href="/categories"><ThemedText style={styles.linkText}>Categories</ThemedText></Link>
-                        <Link href="/colors"><ThemedText style={styles.linkText}>Colors</ThemedText></Link>
-                        <Link href="/coupons"><ThemedText style={styles.linkText}>Coupons</ThemedText></Link>
-                        <Link href="/orders"><ThemedText style={styles.linkText}>Orders</ThemedText></Link>
-                        <Link href="/products"><ThemedText style={styles.linkText}>Products</ThemedText></Link>
-                        <Link href="/reviews"><ThemedText style={styles.linkText}>Reviews</ThemedText></Link>
-                        <Link href="/sizes"><ThemedText style={styles.linkText}>Sizes</ThemedText></Link> */}
-                        <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-                            <Text style={styles.menuButtonText}>☰</Text>
-                        </TouchableOpacity>
-                        {menuVisible && (
-                            <View style={styles.dropdownMenu}>
-                                <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
-                                    <Text style={styles.menuItemText}>Cerrar sesión</Text>
-                                </TouchableOpacity>
-                                {/* Puedes agregar más opciones aquí */}
-                                <TouchableOpacity style={styles.menuItem}>
-                                    <Text style={styles.menuItemText}>Otra Opción</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </ThemedView>
+        <ThemedView style={styles.container}>
+            <ThemedView style={styles.header}>
+                {/* Navbar */}
+                <ThemedView style={styles.navbar}>
+                    <ThemedText type="title" style={styles.welcomeText}>
+                        ¡Bienvenido {userName}!
+                    </ThemedText>
+                    <TouchableOpacity onPress={() => router.push('/cart')} style={styles.iconButton}>
+                        <Ionicons name="cart-outline" size={24} color="#000" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+                        <Text style={styles.menuButtonText}>☰</Text>
+                    </TouchableOpacity>
+                    {menuVisible && (
+                        <View style={styles.dropdownMenu}>
+                            <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
+                                <Text style={styles.menuItemText}>Cerrar sesión</Text>
+                            </TouchableOpacity>
+                            {/* Puedes agregar más opciones aquí */}
+                            <TouchableOpacity style={styles.menuItem}>
+                                <Text style={styles.menuItemText}>Otra Opción</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </ThemedView>
+            </ThemedView>
 
+            <ScrollView contentContainerStyle={styles.scrollContent}>
                 <ThemedView style={{ marginVertical: 60 }}>
                     <TextInput
                         placeholder="Buscar categorías..."
@@ -139,8 +135,8 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     ))}
                 </View>
-            </ThemedView>
-        </ScrollView >
+            </ScrollView>
+        </ThemedView>
     );
 }
 
@@ -163,6 +159,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    iconButton: {
+        position: 'absolute',
+        right: 40,
+        zIndex: 1000,
+        padding: 10,
     },
     navbar: {
         flexDirection: 'row',

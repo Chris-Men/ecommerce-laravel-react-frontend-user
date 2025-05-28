@@ -3,6 +3,8 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, ScrollView
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+
 
 interface Product {
     id: number;
@@ -63,23 +65,31 @@ export default function ProductScreen() {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.container}>
-                {/* <Text style={styles.title}>Productos de la categoría: {categoryName}</Text> */}
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Text style={styles.backButtonText}>←</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/cart')} style={styles.iconButton}>
+                    <Ionicons name="cart-outline" size={24} color="#000" />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
                     <Text style={styles.menuButtonText}>☰</Text>
                 </TouchableOpacity>
-                {menuVisible && (
-                    <View style={styles.dropdownMenu}>
-                        <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
-                            <Text style={styles.menuItemText}>Cerrar sesión</Text>
-                        </TouchableOpacity>
-                        {/* Puedes agregar más opciones aquí */}
-                        <TouchableOpacity style={styles.menuItem}>
-                            <Text style={styles.menuItemText}>Otra Opción</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+            </View>
+
+            {menuVisible && (
+                <View style={styles.dropdownMenu}>
+                    <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
+                        <Text style={styles.menuItemText}>Cerrar sesión</Text>
+                    </TouchableOpacity>
+                    {/* Puedes agregar más opciones aquí */}
+                    <TouchableOpacity style={styles.menuItem}>
+                        <Text style={styles.menuItemText}>Otra Opción</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+            <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.productsContainer}>
                     {products.map((item) => (
                         <TouchableOpacity
@@ -101,7 +111,7 @@ export default function ProductScreen() {
                                 })
                             }>
                             <Image
-                                source={{ uri: `http://localhost:8000/storage/${item.thumbnail}` }}
+                                source={{ uri: `http://localhost:8000/storage/products/${item.thumbnail}` }}
                                 style={styles.productImage}
                                 resizeMode="cover"
                             />
@@ -110,12 +120,33 @@ export default function ProductScreen() {
                         </TouchableOpacity>
                     ))}
                 </View>
-            </View>
-        </ScrollView>
+            </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: -20,
+        marginBottom: 10,
+        zIndex: 10,
+    },
+
+    backButton: {
+        padding: 10,
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        zIndex: 1000,
+    },
+
+    backButtonText: {
+        fontSize: 24,
+        color: '#000',
+    },
     container: {
         flex: 1,
         padding: 16,
@@ -125,6 +156,13 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         marginBottom: 16,
+    },
+    iconButton: {
+        position: 'absolute',
+        top: 15,
+        right: 50,
+        zIndex: 1000,
+        padding: 10,
     },
     menuButton: {
         position: 'absolute',
