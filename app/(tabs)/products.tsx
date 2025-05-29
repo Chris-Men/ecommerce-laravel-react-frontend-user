@@ -37,7 +37,7 @@ export default function ProductScreen() {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
-            const response = await axios.get('http://localhost:8000/api/cart', {
+            const response = await axios.get('http://192.168.43.206:8000/api/cart', {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -66,7 +66,7 @@ export default function ProductScreen() {
                     return;
                 }
 
-                const response = await axios.get(`http://localhost:8000/api/user/categories/${categoryName}/products`, {
+                const response = await axios.get(`http://192.168.43.206:8000/api/user/categories/${categoryName}/products`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -143,7 +143,7 @@ export default function ProductScreen() {
                                 })
                             }>
                             <Image
-                                source={{ uri: `http://localhost:8000/storage/products/${item.thumbnail}` }}
+                                source={{ uri: `http://192.168.43.206:8000/storage/products/${item.thumbnail}` }}
                                 style={styles.productImage}
                                 resizeMode="cover"
                             />

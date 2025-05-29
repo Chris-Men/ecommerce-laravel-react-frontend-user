@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { WebView } from 'react-native-webview';
 
 interface CartItem {
   id: number;
@@ -19,15 +27,17 @@ export default function CartScreen() {
   const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
   const [coupon, setCoupon] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const router = useRouter();
+  const [showWebview, setShowWebview] = useState(false);
+  const [sessionUrl, setSessionUrl] = useState('');
 
   const fetchCartSummary = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:8000/api/cart/summary', {
+      const response = await axios.get('http://192.168.43.206:8000/api/cart/summary', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -49,7 +59,7 @@ export default function CartScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      await axios.delete(`http://localhost:8000/api/cart/${id}`, {
+      await axios.delete(`http://192.168.43.206:8000/api/cart/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -62,9 +72,44 @@ export default function CartScreen() {
     }
   };
 
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const response = await axios.post(
+        'http://192.168.43.206:8000/api/pay-orders-stripe',
+        {
+          success_url: 'https://example.com/success',
+          cancel_url: 'https://example.com/cancel',
+          coupon_code: coupon ?? '', // si tienes código
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const url = response.data.url;
+      setSessionUrl(url);
+      setShowWebview(true);
+    } catch (error) {
+      console.error('Error en el proceso de pago:', error);
+      Alert.alert('Error', 'No se pudo iniciar el proceso de pago.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCartSummary();
   }, []);
+
+  if (showWebview && sessionUrl) {
+    return <WebView source={{ uri: sessionUrl }} style={{ flex: 1 }} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -87,12 +132,20 @@ export default function CartScreen() {
 
         <View style={styles.summary}>
           <Text>Subtotal: ${subtotal.toFixed(2)}</Text>
-          {discount > 0 && <Text>Descuento: -${discount.toFixed(2)} (Cupón: {coupon})</Text>}
+          {discount > 0 && (
+            <Text>
+              Descuento: -${discount.toFixed(2)} (Cupón: {coupon})
+            </Text>
+          )}
           <Text style={styles.total}>Total: ${total.toFixed(2)}</Text>
         </View>
 
-        <TouchableOpacity style={styles.checkoutButton} onPress={() => Alert.alert('Pago', 'Proceder al pago')}>
-          <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+        <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>

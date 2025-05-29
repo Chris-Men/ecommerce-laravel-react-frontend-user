@@ -48,7 +48,7 @@ export default function HomeScreen() {
                     return;
                 }
 
-                const response = await axios.get('http://localhost:8000/api/user/categories', {
+                const response = await axios.get('http://192.168.43.206:8000/api/user/categories', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -126,7 +126,7 @@ export default function HomeScreen() {
                         <TouchableOpacity key={item.id} onPress={() => handleCategoryPress(item)}>
                             <View style={styles.categoryCard}>
                                 <Image
-                                    source={{ uri: `http://localhost:8000/storage/${item.image}` }}
+                                    source={{ uri: `192.168.43.206:8000/storage/${item.image}` }}
                                     style={styles.categoryImage}
                                     resizeMode="cover"
                                 />

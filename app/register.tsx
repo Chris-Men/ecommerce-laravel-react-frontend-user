@@ -4,8 +4,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
-const REGISTER_URL = 'http://localhost:8000/api/user/register';
-const LOGIN_URL = 'http://localhost:8000/api/user/login';
+const REGISTER_URL = 'http://192.168.43.206:8000/api/user/register';
+const LOGIN_URL = 'http://192.168.43.206:8000/api/user/login';
 
 const RegisterScreen = () => {
     const [name, setName] = useState('');

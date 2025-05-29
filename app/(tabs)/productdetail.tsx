@@ -38,7 +38,7 @@ export default function ProductDetailScreen() {
 
             console.log('Datos enviados al backend:', payload);
 
-            const response = await axios.post('http://localhost:8000/api/cart', payload, {
+            const response = await axios.post('http://192.168.43.206:8000/api/cart', payload, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json',
@@ -96,7 +96,7 @@ export default function ProductDetailScreen() {
                     </TouchableOpacity>
                 </View>
             )}
-            <Image source={{ uri: `http://localhost:8000/storage/products/${thumbnail}` }} style={styles.image} />
+            <Image source={{ uri: `http://192.168.43.206:8000/storage/products/${thumbnail}` }} style={styles.image} />
             <Text style={styles.name}>{name}</Text>
             <Text style={styles.detail}>Marca: {brand}</Text>
             <Text style={styles.detail}>Talla: {size}</Text>
