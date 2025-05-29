@@ -1,166 +1,155 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-export default function ProductDetailScreen() {
-    const { id, name, thumbnail, brand, size, color, qty, price } = useLocalSearchParams();
-    const [quantity, setQuantity] = useState('1');
-    const [menuVisible, setMenuVisible] = useState(false);
+interface CartItem {
+  id: number;
+  product_name: string;
+  qty: number;
+  unit_price: number;
+  line_total: number;
+}
 
-    const handleLogout = async () => {
-        await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('userName'); // Eliminar el nombre del usuario al cerrar sesión
-        router.replace('/login'); // Vuelve a la pantalla de login
-    };
+export default function CartScreen() {
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [subtotal, setSubtotal] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [coupon, setCoupon] = useState<string | null>(null);
 
-    const handleAddToCart = () => {
-        if (Number(quantity) > Number(qty)) {
-            Alert.alert('Cantidad no disponible', `Solo hay ${qty} en inventario`);
-            return;
-        }
+  const router = useRouter();
 
-        // Aquí puedes manejar la lógica para agregar al carrito
-        Alert.alert('Agregado al carrito', `${name} x ${quantity}`);
-    };
-    const toggleMenu = () => {
-        setMenuVisible(!menuVisible);
-    };
+  const fetchCartSummary = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.replace('/products')} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>←</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-                    <Text style={styles.menuButtonText}>☰</Text>
-                </TouchableOpacity>
+      const response = await axios.get('http://localhost:8000/api/cart/summary', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = response.data;
+      setCartItems(data.items);
+      setSubtotal(data.subtotal);
+      setDiscount(data.discount);
+      setTotal(data.total);
+      setCoupon(data.coupon_applied ?? null);
+    } catch (error) {
+      console.error('Error al obtener el resumen del carrito:', error);
+    }
+  };
+
+  const removeItem = async (id: number) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      await axios.delete(`http://localhost:8000/api/cart/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      fetchCartSummary(); // Recargar después de eliminar
+    } catch (error) {
+      console.error('Error al eliminar el producto:', error);
+      Alert.alert('Error', 'No se pudo eliminar el producto.');
+    }
+  };
+
+  useEffect(() => {
+    fetchCartSummary();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.title}>Carrito de Compras</Text>
+
+        {cartItems.map((item) => (
+          <View key={item.id} style={styles.itemContainer}>
+            <View style={styles.itemDetails}>
+              <Text style={styles.productName}>{item.product_name}</Text>
+              <Text>Cantidad: {item.qty}</Text>
+              <Text>Precio unitario: ${item.unit_price.toFixed(2)}</Text>
+              <Text>Total: ${item.line_total.toFixed(2)}</Text>
             </View>
-
-            {menuVisible && (
-                <View style={styles.dropdownMenu}>
-                    <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
-                        <Text style={styles.menuItemText}>Cerrar sesión</Text>
-                    </TouchableOpacity>
-                    {/* Puedes agregar más opciones aquí */}
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Text style={styles.menuItemText}>Otra Opción</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-            <Image source={{ uri: `http://localhost:8000/storage/products/${thumbnail}` }} style={styles.image} />
-            <Text style={styles.name}>{name}</Text>
-            <Text style={styles.detail}>Marca: {brand}</Text>
-            <Text style={styles.detail}>Talla: {size}</Text>
-            <Text style={styles.detail}>Color: {color}</Text>
-            <Text style={styles.detail}>Disponibles: {qty}</Text>
-            <Text style={styles.detail}>Precio: ${price}</Text>
-
-            <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={quantity}
-                onChangeText={setQuantity}
-                placeholder="Cantidad"
-            />
-
-            <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
-                <Text style={styles.buttonText}>Agregar al carrito</Text>
+            <TouchableOpacity onPress={() => removeItem(item.id)}>
+              <Ionicons name="trash-outline" size={24} color="red" />
             </TouchableOpacity>
+          </View>
+        ))}
+
+        <View style={styles.summary}>
+          <Text>Subtotal: ${subtotal.toFixed(2)}</Text>
+          {discount > 0 && <Text>Descuento: -${discount.toFixed(2)} (Cupón: {coupon})</Text>}
+          <Text style={styles.total}>Total: ${total.toFixed(2)}</Text>
         </View>
-    );
+
+        <TouchableOpacity style={styles.checkoutButton} onPress={() => Alert.alert('Pago', 'Proceder al pago')}>
+          <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: -20,
-        marginBottom: 10,
-    },
-
-    backButton: {
-        padding: 10,
-        position: 'absolute',
-        top: 10,
-        left: 10,
-        zIndex: 1000,
-    },
-
-    backButtonText: {
-        fontSize: 24,
-        color: '#000',
-    },
-    menuButton: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        zIndex: 1000,
-        padding: 10,
-    },
-    menuButtonText: {
-        fontSize: 24,
-        color: '#000',
-    },
-    dropdownMenu: {
-        position: 'absolute',
-        top: 50,
-        right: 10,
-        backgroundColor: 'white',
-        borderRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
-        zIndex: 1001,
-    },
-    menuItem: {
-        padding: 10,
-    },
-    menuItemText: {
-        color: '#000',
-    },
-    container: {
-        padding: 20,
-        backgroundColor: '#fff',
-        flex: 1,
-    },
-    image: {
-        width: '100%',
-        height: 200,
-        borderRadius: 8,
-        marginBottom: 20,
-        marginTop: 75,
-    },
-    name: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    detail: {
-        fontSize: 16,
-        marginBottom: 5,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        padding: 10,
-        marginTop: 10,
-        marginBottom: 20,
-        width: '40%',
-    },
-    button: {
-        backgroundColor: '#007bff',
-        padding: 15,
-        borderRadius: 5,
-    },
-    buttonText: {
-        color: '#fff',
-        textAlign: 'center',
-        fontWeight: 'bold',
-    },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 16,
+  },
+  scrollContainer: {
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 15,
+    backgroundColor: '#f3f3f3',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  itemDetails: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  productName: {
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  summary: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#e6e6e6',
+    borderRadius: 8,
+  },
+  total: {
+    marginTop: 10,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  checkoutButton: {
+    backgroundColor: '#2196F3',
+    padding: 15,
+    marginTop: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  checkoutButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
 });

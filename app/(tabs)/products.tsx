@@ -24,12 +24,35 @@ export default function ProductScreen() {
     const { categoryId, categoryName } = useLocalSearchParams<{ categoryId: string, categoryName: string }>();
     const [products, setProducts] = useState<Product[]>([]);
     const [menuVisible, setMenuVisible] = useState(false);
+    const [cartCount, setCartCount] = useState(0);
 
     const handleLogout = async () => {
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('userName'); // Eliminar el nombre del usuario al cerrar sesión
         router.replace('/login'); // Vuelve a la pantalla de login
     };
+
+    const fetchCartCount = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+
+            const response = await axios.get('http://localhost:8000/api/cart', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            console.log('Contenido del carrito:', response.data);
+
+            const items = response.data;
+            const totalQty = items.reduce((sum: number, item: any) => sum + item.qty, 0);
+            setCartCount(totalQty);
+        } catch (error) {
+            console.error('Error al obtener el carrito:', error);
+        }
+    };
+
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -57,6 +80,7 @@ export default function ProductScreen() {
 
         if (categoryId && categoryName) {
             fetchProducts();
+            fetchCartCount();
         }
     }, [categoryId, categoryName, router]);
 
@@ -70,9 +94,16 @@ export default function ProductScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Text style={styles.backButtonText}>←</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity onPress={() => router.push('/cart')} style={styles.iconButton}>
                     <Ionicons name="cart-outline" size={24} color="#000" />
+                    {cartCount > 0 && (
+                        <View style={styles.cartBadge}>
+                            <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
+
                 <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
                     <Text style={styles.menuButtonText}>☰</Text>
                 </TouchableOpacity>
@@ -89,6 +120,7 @@ export default function ProductScreen() {
                     </TouchableOpacity>
                 </View>
             )}
+
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.productsContainer}>
                     {products.map((item) => (
@@ -234,5 +266,23 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 40,
+    },
+    cartBadge: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        backgroundColor: 'red',
+        borderRadius: 10,
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        minWidth: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    cartBadgeText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
 });
