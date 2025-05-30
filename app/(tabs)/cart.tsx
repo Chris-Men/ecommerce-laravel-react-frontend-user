@@ -12,6 +12,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import * as Linking from 'expo-linking';
+import { API_BASE_URL } from '@/constants/config';
 
 interface CartItem {
   id: number;
@@ -37,7 +39,7 @@ export default function CartScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get('http://192.168.43.206:8000/api/cart/summary', {
+      const response = await axios.get(`${API_BASE_URL}/cart/summary`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -59,7 +61,7 @@ export default function CartScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      await axios.delete(`http://192.168.43.206:8000/api/cart/${id}`, {
+      await axios.delete(`${API_BASE_URL}/cart/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -79,10 +81,10 @@ export default function CartScreen() {
       if (!token) return;
 
       const response = await axios.post(
-        'http://192.168.43.206:8000/api/pay-orders-stripe',
+        `${API_BASE_URL}/pay-orders-stripe`,
         {
-          success_url: 'https://example.com/success',
-          cancel_url: 'https://example.com/cancel',
+          success_url: 'https://sweet-shoes-add.loca.lt/stripe/success',
+          cancel_url: 'https://sweet-shoes-add.loca.lt/stripe/cancel',
           coupon_code: coupon ?? '', // si tienes código
         },
         {
@@ -107,8 +109,42 @@ export default function CartScreen() {
     fetchCartSummary();
   }, []);
 
+  // 🔁 Manejar deep links cuando regresa desde Stripe
+  useEffect(() => {
+    const handleDeepLink = (event: Linking.EventType) => {
+      const url = event.url;
+
+      if (url.includes('success')) {
+        setShowWebview(false);
+        fetchCartSummary();
+        Alert.alert('Pago exitoso', 'Tu pedido ha sido procesado.');
+      } else if (url.includes('cancel')) {
+        setShowWebview(false);
+        Alert.alert('Pago cancelado', 'No se completó el pago.');
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => subscription.remove();
+  }, []);
+
+  // Justo después de tu WebView actual
   if (showWebview && sessionUrl) {
-    return <WebView source={{ uri: sessionUrl }} style={{ flex: 1 }} />;
+    return (
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity
+          style={{ padding: 10, backgroundColor: '#eee' }}
+          onPress={() => {
+            setShowWebview(false);
+            fetchCartSummary(); // refrescar el carrito
+          }}
+        >
+          <Text style={{ textAlign: 'center', color: 'blue' }}>← Volver</Text>
+        </TouchableOpacity>
+
+        <WebView source={{ uri: sessionUrl }} style={{ flex: 1 }} />
+      </View>
+    );
   }
 
   return (
@@ -116,19 +152,24 @@ export default function CartScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.title}>Carrito de Compras</Text>
 
-        {cartItems.map((item) => (
-          <View key={item.id} style={styles.itemContainer}>
-            <View style={styles.itemDetails}>
-              <Text style={styles.productName}>{item.product_name}</Text>
-              <Text>Cantidad: {item.qty}</Text>
-              <Text>Precio unitario: ${item.unit_price.toFixed(2)}</Text>
-              <Text>Total: ${item.line_total.toFixed(2)}</Text>
+        {cartItems.length === 0 ? (
+          <Text style={styles.emptyCartText}>El carrito está vacío.</Text>
+        ) : (
+          cartItems.map((item) => (
+            <View key={item.id} style={styles.itemContainer}>
+              <View style={styles.itemDetails}>
+                <Text style={styles.productName}>{item.product_name}</Text>
+                <Text>Cantidad: {item.qty}</Text>
+                <Text>Precio unitario: ${item.unit_price.toFixed(2)}</Text>
+                <Text>Total: ${item.line_total.toFixed(2)}</Text>
+              </View>
+              <TouchableOpacity onPress={() => removeItem(item.id)}>
+                <Ionicons name="trash-outline" size={24} color="red" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => removeItem(item.id)}>
-              <Ionicons name="trash-outline" size={24} color="red" />
-            </TouchableOpacity>
-          </View>
-        ))}
+          ))
+        )}
+
 
         <View style={styles.summary}>
           <Text>Subtotal: ${subtotal.toFixed(2)}</Text>
@@ -204,5 +245,11 @@ const styles = StyleSheet.create({
   checkoutButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  emptyCartText: {
+    textAlign: 'center',
+    marginTop: 30,
+    fontSize: 16,
+    color: '#666',
   },
 });

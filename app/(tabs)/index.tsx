@@ -6,6 +6,8 @@ import { useRouter, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL } from '@/constants/config';
+
 
 // Definición de la interfaz Category
 interface Category {
@@ -48,7 +50,7 @@ export default function HomeScreen() {
                     return;
                 }
 
-                const response = await axios.get('http://192.168.43.206:8000/api/user/categories', {
+                const response = await axios.get(`${API_BASE_URL}/user/categories`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -126,7 +128,7 @@ export default function HomeScreen() {
                         <TouchableOpacity key={item.id} onPress={() => handleCategoryPress(item)}>
                             <View style={styles.categoryCard}>
                                 <Image
-                                    source={{ uri: `192.168.43.206:8000/storage/${item.image}` }}
+                                    source={{ uri: `${API_BASE_URL.replace('/api', '')}/storage/${item.image}` }}
                                     style={styles.categoryImage}
                                     resizeMode="cover"
                                 />

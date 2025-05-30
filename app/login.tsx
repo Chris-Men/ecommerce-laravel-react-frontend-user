@@ -5,8 +5,10 @@ import axios from 'axios';
 import { useRouter, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { API_BASE_URL } from '../constants/config';
 
-const API_URL = 'http://192.168.43.206:8000/api/user/login'; // Usa tu IP local si estás en desarrollo
+
+const API_URL = `${API_BASE_URL}/user/login`; // Usa tu IP local si estás en desarrollo
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('user@example.com');

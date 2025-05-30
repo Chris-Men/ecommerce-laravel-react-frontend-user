@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL } from '@/constants/config';
 
 
 interface Product {
@@ -37,7 +38,7 @@ export default function ProductScreen() {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
-            const response = await axios.get('http://192.168.43.206:8000/api/cart', {
+            const response = await axios.get(`${API_BASE_URL}/cart`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -66,7 +67,7 @@ export default function ProductScreen() {
                     return;
                 }
 
-                const response = await axios.get(`http://192.168.43.206:8000/api/user/categories/${categoryName}/products`, {
+                const response = await axios.get(`${API_BASE_URL}/user/categories/${categoryName}/products`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -143,7 +144,7 @@ export default function ProductScreen() {
                                 })
                             }>
                             <Image
-                                source={{ uri: `http://192.168.43.206:8000/storage/products/${item.thumbnail}` }}
+                                source={{ uri: `${API_BASE_URL.replace('/api', '')}/storage/products/${item.thumbnail}` }}
                                 style={styles.productImage}
                                 resizeMode="cover"
                             />

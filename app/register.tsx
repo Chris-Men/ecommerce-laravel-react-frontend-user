@@ -3,9 +3,10 @@ import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { API_BASE_URL } from '@/constants/config';
 
-const REGISTER_URL = 'http://192.168.43.206:8000/api/user/register';
-const LOGIN_URL = 'http://192.168.43.206:8000/api/user/login';
+const REGISTER_URL = `${API_BASE_URL}/user/register`;
+const LOGIN_URL = `${API_BASE_URL}/user/login`;
 
 const RegisterScreen = () => {
     const [name, setName] = useState('');

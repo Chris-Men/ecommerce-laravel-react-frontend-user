@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { isAxiosError } from 'axios';
 import Toast from 'react-native-toast-message';
+import { API_BASE_URL } from '@/constants/config';
 
 
 
@@ -38,7 +39,7 @@ export default function ProductDetailScreen() {
 
             console.log('Datos enviados al backend:', payload);
 
-            const response = await axios.post('http://192.168.43.206:8000/api/cart', payload, {
+            const response = await axios.post(`${API_BASE_URL}/cart`, payload, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json',
@@ -96,7 +97,7 @@ export default function ProductDetailScreen() {
                     </TouchableOpacity>
                 </View>
             )}
-            <Image source={{ uri: `http://192.168.43.206:8000/storage/products/${thumbnail}` }} style={styles.image} />
+            <Image source={{ uri: `${API_BASE_URL.replace('/api', '')}/storage/products/${thumbnail}` }} style={styles.image} />
             <Text style={styles.name}>{name}</Text>
             <Text style={styles.detail}>Marca: {brand}</Text>
             <Text style={styles.detail}>Talla: {size}</Text>
