@@ -8,7 +8,7 @@ import { API_BASE_URL } from '@/constants/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-
+import { Picker } from '@react-native-picker/picker';
 
 export default function ProductDetailScreen() {
     const { id, name, image, brand, size, color, qty, price } = useLocalSearchParams();
@@ -146,13 +146,16 @@ export default function ProductDetailScreen() {
             <Text style={styles.detail}>Disponibles: {qty}</Text>
             <Text style={styles.detail}>Precio: ${price}</Text>
 
-            <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={quantity}
-                onChangeText={setQuantity}
-                placeholder="Cantidad"
-            />
+            <Picker
+                selectedValue={quantity}
+                style={styles.picker}
+                onValueChange={(itemValue) => setQuantity(itemValue)}
+            >
+                {Array.from({ length: Number(qty) }, (_, i) => (
+                    <Picker.Item key={i + 1} label={`${i + 1}`} value={`${i + 1}`} />
+                ))}
+            </Picker>
+
 
             <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
                 <Text style={styles.buttonText}>Agregar al carrito</Text>
@@ -291,5 +294,15 @@ const styles = StyleSheet.create({
         right: 56,
         zIndex: 1000,
         padding: 10,
+    },
+    picker: {
+        height: 50,
+        width: '40%',
+        borderColor: '#ccc',
+        borderWidth: 1,
+        borderRadius: 5,
+        marginBottom: 20,
+        marginTop: 10,
+        paddingLeft: 5,
     },
 });

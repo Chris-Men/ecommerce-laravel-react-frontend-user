@@ -1,113 +1,160 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { API_BASE_URL } from '@/constants/config';
+import { useRouter, Link } from 'expo-router';
 
 const REGISTER_URL = 'http://localhost:8000/api/user/register';
 const LOGIN_URL = 'http://localhost:8000/api/user/login';
 
 const RegisterScreen = () => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const router = useRouter();
 
-    const handleRegister = async () => {
-        try {
-            // Paso 1: Registrar usuario
-            await axios.post(REGISTER_URL, {
-                name,
-                email,
-                password,
-                password_confirmation: password,
-            });
+  const handleRegister = async () => {
+    try {
+      await axios.post(REGISTER_URL, {
+        name,
+        email,
+        password,
+        password_confirmation: password,
+      });
 
-            console.log('Usuario registrado correctamente. Iniciando sesión...');
+      const loginResponse = await axios.post(LOGIN_URL, {
+        email,
+        password,
+      });
 
-            // Paso 2: Login automático
-            const loginResponse = await axios.post(LOGIN_URL, {
-                email,
-                password,
-            });
+      const { token, user } = loginResponse.data;
 
-            const { token, user } = loginResponse.data; // Cambiado a token
+      await AsyncStorage.setItem('token', token);
+      await AsyncStorage.setItem('userName', user.name);
 
-            // Paso 3: Guardar token y datos del usuario
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('userName', user.name);
+      setError('');
+      setSuccess('¡Registro exitoso!');
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      console.error('Error:', err.response ? err.response.data : err.message);
+      setError('Verifica tus datos o si el correo ya está en uso.');
+      setSuccess('');
+    }
+  };
 
-            setError('');
-            setSuccess('Registro y login exitosos');
+  return (
+    <View style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Crear cuenta</Text>
 
-            // Paso 4: Redirigir a pantalla principal
-            router.replace('/(tabs)');
-        } catch (err: any) {
-            console.error('Error:', err.response ? err.response.data : err.message);
-            setError('Error al registrar o iniciar sesión. Verifica los datos o si el correo ya está en uso.');
-            setSuccess('');
-        }
-    };
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Nombre completo"
+          style={styles.input}
+          placeholderTextColor="#999"
+        />
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Correo electrónico"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={styles.input}
+          placeholderTextColor="#999"
+        />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Contraseña"
+          secureTextEntry
+          style={styles.input}
+          placeholderTextColor="#999"
+        />
 
-    const goToLogin = () => {
-        router.replace('/login'); // Cambia '/login' a la ruta de tu pantalla de login
-    };
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {success ? <Text style={styles.success}>{success}</Text> : null}
 
-    return (
-        <View style={styles.container}>
-            <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Nombre"
-                style={styles.input}
-            />
-            <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Correo"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                style={styles.input}
-            />
-            <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Contraseña"
-                secureTextEntry
-                style={styles.input}
-            />
-            <Button title="Registrarse" onPress={handleRegister} />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            {success ? <Text style={styles.success}>{success}</Text> : null}
-            <Button title="Regresar al Login" onPress={goToLogin} /> {/* Botón para regresar */}
-        </View>
-    );
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Registrarse</Text>
+        </TouchableOpacity>
+
+        <Link href="/login">
+          <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
+        </Link>
+      </View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        padding: 20,
-        justifyContent: 'center',
-        flex: 1,
-        backgroundColor: '#fff'
-    },
-    input: {
-        borderBottomWidth: 1,
-        marginBottom: 15,
-        fontSize: 16,
-        color: '#000'
-    },
-    error: {
-        color: 'red',
-        marginTop: 10
-    },
-    success: {
-        color: 'green',
-        marginTop: 10
-    }
+  container: {
+    flex: 1,
+    backgroundColor: '#F0F4F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#333',
+  },
+  input: {
+    backgroundColor: '#F5F7FA',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#D1D9E6',
+    color: '#333',
+  },
+  button: {
+    backgroundColor: '#007bff',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  error: {
+    color: '#FF4C4C',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  success: {
+    color: '#28a745',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  linkText: {
+    color: '#007bff',
+    textAlign: 'center',
+    fontSize: 14,
+  },
 });
 
 export default RegisterScreen;

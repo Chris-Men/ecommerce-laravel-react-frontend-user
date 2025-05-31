@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 
 import { useRouter, Link } from 'expo-router';
@@ -14,7 +14,7 @@ const LoginScreen = () => {
   const [email, setEmail] = useState('user@example.com');
   const [password, setPassword] = useState('password');
   const [error, setError] = useState('');
-  const [token, setToken] = useState('');
+  // const [token, setToken] = useState('');
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -29,7 +29,7 @@ const LoginScreen = () => {
       // Aquí guardas el token JWT y el nombre del usuario
       const accessToken = response.data.token;
       const userName = response.data.user.name; // Asegúrate de que tu API devuelva el nombre
-      setToken(accessToken);
+      // setToken(accessToken);
       setError('');
       console.log('Login exitoso', accessToken);
       console.log('Nombre de usuario:', userName);
@@ -51,27 +51,35 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Correo"
-        autoCapitalize="none"
-        style={styles.input}
-      />
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Contraseña"
-        secureTextEntry
-        style={styles.input}
-      />
-      <Button title="Iniciar sesión" onPress={handleLogin} />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {token ? <Text style={styles.token}>Token: {token}</Text> : null}
+      <View style={styles.card}>
+        <Text style={styles.title}>Iniciar Sesión</Text>
 
-      <Link href="/register">
-        <Text style={{ color: 'blue', marginTop: 20 }}>¿No tienes cuenta? Regístrate aquí</Text>
-      </Link>
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Correo electrónico"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={styles.input}
+        />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Contraseña"
+          secureTextEntry
+          style={styles.input}
+        />
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Entrar</Text>
+        </TouchableOpacity>
+
+        <Link href="/register">
+          <Text style={styles.linkText}>¿No tienes cuenta? Regístrate</Text>
+        </Link>
+      </View>
     </View>
   );
 };
@@ -79,24 +87,63 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F0F4F8',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF', // Fondo blanco
-    padding: 20
+    padding: 16,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#333',
   },
   input: {
-    borderBottomWidth: 1,
-    marginBottom: 15,
+    backgroundColor: '#F5F7FA',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
-    color: '#000000', // Texto negro
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#D1D9E6',
+    color: '#333',
+  },
+  button: {
+    backgroundColor: '#007bff',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
   error: {
-    color: 'red',
-    marginTop: 10
+    color: '#FF4C4C',
+    marginBottom: 10,
+    textAlign: 'center',
   },
-  token: {
-    marginTop: 10,
-    color: 'green'
+  linkText: {
+    color: '#007bff',
+    textAlign: 'center',
+    fontSize: 14,
   },
 });
 
