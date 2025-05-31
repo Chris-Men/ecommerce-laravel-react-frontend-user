@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/config';
 
 
-const API_URL = `${API_BASE_URL}/user/login`; // Usa tu IP local si estás en desarrollo
+const API_URL = 'http://localhost:8000/api/user/login'; // Usa tu IP local si estás en desarrollo
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('user@example.com');

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,10 @@ import {
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { WebView } from 'react-native-webview';
 import * as Linking from 'expo-linking';
 import { API_BASE_URL } from '@/constants/config';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface CartItem {
   id: number;
@@ -30,16 +31,14 @@ export default function CartScreen() {
   const [total, setTotal] = useState(0);
   const [coupon, setCoupon] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const [showWebview, setShowWebview] = useState(false);
-  const [sessionUrl, setSessionUrl] = useState('');
+  const router = useRouter();
 
   const fetchCartSummary = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get(`${API_BASE_URL}/cart/summary`, {
+      const response = await axios.get("http://localhost:8000/api/cart/summary", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -61,11 +60,12 @@ export default function CartScreen() {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      await axios.delete(`${API_BASE_URL}/cart/${id}`, {
+      await axios.delete(`http://localhost:8000/api/cart/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
 
       fetchCartSummary(); // Recargar después de eliminar
     } catch (error) {
@@ -81,11 +81,11 @@ export default function CartScreen() {
       if (!token) return;
 
       const response = await axios.post(
-        `${API_BASE_URL}/pay-orders-stripe`,
+        'http://localhost:8000/api/pay-orders-stripe',
         {
-          success_url: 'https://sweet-shoes-add.loca.lt/stripe/success',
-          cancel_url: 'https://sweet-shoes-add.loca.lt/stripe/cancel',
-          coupon_code: coupon ?? '', // si tienes código
+          success_url: 'https://example.com/success', // usa el esquema de tu app
+          cancel_url: 'https://example.com/cancel',
+          coupon_code: coupon ?? '',
         },
         {
           headers: {
@@ -95,8 +95,7 @@ export default function CartScreen() {
       );
 
       const url = response.data.url;
-      setSessionUrl(url);
-      setShowWebview(true);
+      await Linking.openURL(url); // abre en navegador externo
     } catch (error) {
       console.error('Error en el proceso de pago:', error);
       Alert.alert('Error', 'No se pudo iniciar el proceso de pago.');
@@ -105,21 +104,22 @@ export default function CartScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchCartSummary();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchCartSummary();
+    }, [])
+  );
 
-  // 🔁 Manejar deep links cuando regresa desde Stripe
+
+  // Manejar retorno desde Stripe con deep linking
   useEffect(() => {
     const handleDeepLink = (event: Linking.EventType) => {
       const url = event.url;
 
       if (url.includes('success')) {
-        setShowWebview(false);
         fetchCartSummary();
         Alert.alert('Pago exitoso', 'Tu pedido ha sido procesado.');
       } else if (url.includes('cancel')) {
-        setShowWebview(false);
         Alert.alert('Pago cancelado', 'No se completó el pago.');
       }
     };
@@ -128,30 +128,18 @@ export default function CartScreen() {
     return () => subscription.remove();
   }, []);
 
-  // Justo después de tu WebView actual
-  if (showWebview && sessionUrl) {
-    return (
-      <View style={{ flex: 1 }}>
-        <TouchableOpacity
-          style={{ padding: 10, backgroundColor: '#eee' }}
-          onPress={() => {
-            setShowWebview(false);
-            fetchCartSummary(); // refrescar el carrito
-          }}
-        >
-          <Text style={{ textAlign: 'center', color: 'blue' }}>← Volver</Text>
-        </TouchableOpacity>
-
-        <WebView source={{ uri: sessionUrl }} style={{ flex: 1 }} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      {/* Header con botón de retroceso */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
         <Text style={styles.title}>Carrito de Compras</Text>
+      </View>
 
+      {/* Contenido del carrito */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         {cartItems.length === 0 ? (
           <Text style={styles.emptyCartText}>El carrito está vacío.</Text>
         ) : (
@@ -169,8 +157,9 @@ export default function CartScreen() {
             </View>
           ))
         )}
+      </ScrollView>
 
-
+      <View style={styles.footer}>
         <View style={styles.summary}>
           <Text>Subtotal: ${subtotal.toFixed(2)}</Text>
           {discount > 0 && (
@@ -181,14 +170,18 @@ export default function CartScreen() {
           <Text style={styles.total}>Total: ${total.toFixed(2)}</Text>
         </View>
 
-        <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout} disabled={loading}>
+        <TouchableOpacity
+          style={styles.checkoutButton}
+          onPress={handleCheckout}
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -198,15 +191,47 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 16,
+    // paddingTop: 70,
   },
+  header: {
+    position: 'absolute',
+    top: -10,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+
+  backButton: {
+    padding: 10,
+    position: 'absolute',
+    top: 19,
+    left: 10,
+    zIndex: 1000,
+  },
+
   scrollContainer: {
     paddingBottom: 40,
+    paddingTop: 60,
   },
+
   title: {
+    position: 'absolute',
+    top: 25,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
+    color: '#000',
   },
   itemContainer: {
     flexDirection: 'row',
@@ -251,5 +276,11 @@ const styles = StyleSheet.create({
     marginTop: 30,
     fontSize: 16,
     color: '#666',
+  },
+  footer: {
+    backgroundColor: '#fff',
+    paddingBottom: 10,
+    paddingHorizontal: 8,
+    borderColor: '#ddd',
   },
 });

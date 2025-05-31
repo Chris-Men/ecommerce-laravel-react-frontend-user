@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '@/constants/config';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 interface Product {
@@ -38,13 +39,9 @@ export default function ProductScreen() {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
-            const response = await axios.get(`${API_BASE_URL}/cart`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+            const response = await axios.get("http://localhost:8000/api/cart", {
+                headers: { Authorization: `Bearer ${token}` },
             });
-
-            console.log('Contenido del carrito:', response.data);
 
             const items = response.data;
             const totalQty = items.reduce((sum: number, item: any) => sum + item.qty, 0);
@@ -53,7 +50,11 @@ export default function ProductScreen() {
             console.error('Error al obtener el carrito:', error);
         }
     };
-
+    useFocusEffect(
+        useCallback(() => {
+            fetchCartCount();
+        }, [])
+    );
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -67,7 +68,7 @@ export default function ProductScreen() {
                     return;
                 }
 
-                const response = await axios.get(`${API_BASE_URL}/user/categories/${categoryName}/products`, {
+                const response = await axios.get(`http://localhost:8000/api/user/categories/${categoryName}/products`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -93,8 +94,10 @@ export default function ProductScreen() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>←</Text>
+                    <Ionicons name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
+
+                <Text style={styles.headerTitle}>Productos</Text>
 
                 <TouchableOpacity onPress={() => router.push('/cart')} style={styles.iconButton}>
                     <Ionicons name="cart-outline" size={24} color="#000" />
@@ -134,7 +137,7 @@ export default function ProductScreen() {
                                     params: {
                                         id: item.id,
                                         name: item.name,
-                                        thumbnail: item.thumbnail,
+                                        image: item.image,
                                         brand: item.brand?.name ?? 'Sin marca',
                                         size: item.size?.name ?? 'Sin talla',
                                         color: item.color?.name ?? 'Sin color',
@@ -144,7 +147,7 @@ export default function ProductScreen() {
                                 })
                             }>
                             <Image
-                                source={{ uri: `${API_BASE_URL.replace('/api', '')}/storage/products/${item.thumbnail}` }}
+                                source={{ uri: `http://localhost:8000/storage/${item.image}` }}
                                 style={styles.productImage}
                                 resizeMode="cover"
                             />
@@ -160,26 +163,41 @@ export default function ProductScreen() {
 
 const styles = StyleSheet.create({
     header: {
+        position: 'absolute',
+        top: -10,
+        left: 0,
+        right: 0,
+        height: 70,
+        backgroundColor: '#fff',
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: -20,
-        marginBottom: 10,
-        zIndex: 10,
+        paddingHorizontal: 16,
+        zIndex: 999,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
     },
 
+    headerTitle: {
+        position: 'absolute',
+        top: 25,
+        left: 0,
+        right: 0,
+        textAlign: 'center',
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    
     backButton: {
         padding: 10,
         position: 'absolute',
-        top: 10,
+        top: 19,
         left: 10,
         zIndex: 1000,
     },
 
-    backButtonText: {
-        fontSize: 24,
-        color: '#000',
-    },
     container: {
         flex: 1,
         padding: 16,
@@ -192,17 +210,17 @@ const styles = StyleSheet.create({
     },
     iconButton: {
         position: 'absolute',
-        top: 15,
-        right: 50,
+        top: 19,
+        right: 56,
         zIndex: 1000,
         padding: 10,
     },
     menuButton: {
         position: 'absolute',
         top: 10,
-        right: 10,
+        right: 12,
         zIndex: 1000,
-        padding: 10,
+        padding: 14,
     },
     menuButtonText: {
         fontSize: 24,
@@ -242,16 +260,16 @@ const styles = StyleSheet.create({
     },
     productCard: {
         backgroundColor: '#f9f9f9',
-        padding: 15,
+        padding: 10,
         margin: 10,
-        borderRadius: 5,
-        width: Dimensions.get('window').width * 0.4,
+        borderRadius: 10,
+        width: Dimensions.get('window').width * 0.8,
         height: 300,
         alignItems: 'center',
     },
     productImage: {
-        width: '80%',
-        height: '70%',
+        width: '100%',
+        height: '85%',
         marginBottom: 10,
         borderRadius: 5,
     },
@@ -263,7 +281,6 @@ const styles = StyleSheet.create({
     productPrice: {
         color: 'green',
         fontSize: 14,
-        marginTop: 5,
     },
     scrollContent: {
         paddingBottom: 40,

@@ -1,23 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { isAxiosError } from 'axios';
 import Toast from 'react-native-toast-message';
 import { API_BASE_URL } from '@/constants/config';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 
 export default function ProductDetailScreen() {
-    const { id, name, thumbnail, brand, size, color, qty, price } = useLocalSearchParams();
+    const { id, name, image, brand, size, color, qty, price } = useLocalSearchParams();
     const [quantity, setQuantity] = useState('1');
     const [menuVisible, setMenuVisible] = useState(false);
+    const [cartCount, setCartCount] = useState(0);
 
     const handleLogout = async () => {
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('userName'); // Eliminar el nombre del usuario al cerrar sesión
         router.replace('/login'); // Vuelve a la pantalla de login
     };
+
+    const fetchCartCount = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+
+            const response = await axios.get("http://localhost:8000/api/cart", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const items = response.data;
+            const totalQty = items.reduce((sum: number, item: any) => sum + item.qty, 0);
+            setCartCount(totalQty);
+        } catch (error) {
+            console.error('Error al obtener el carrito:', error);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchCartCount();
+        }, [])
+    );
 
     const handleAddToCart = async () => {
         console.log('Intentando agregar al carrito...');
@@ -39,7 +65,7 @@ export default function ProductDetailScreen() {
 
             console.log('Datos enviados al backend:', payload);
 
-            const response = await axios.post(`${API_BASE_URL}/cart`, payload, {
+            const response = await axios.post("http://localhost:8000/api/cart", payload, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json',
@@ -59,6 +85,9 @@ export default function ProductDetailScreen() {
                     visibilityTime: 2000, // 2 segundos
                     autoHide: true,
                 });
+
+                //Actualizar el contador del carrito inmediatamente
+                await fetchCartCount();
             }
         } catch (error) {
             if (isAxiosError(error) && error.response) {
@@ -79,8 +108,20 @@ export default function ProductDetailScreen() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.replace('/products')} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>←</Text>
+                    <Ionicons name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
+
+                <Text style={styles.headerTitle}>Detalles</Text>
+
+                <TouchableOpacity onPress={() => router.push('/cart')} style={styles.iconButton}>
+                    <Ionicons name="cart-outline" size={24} color="#000" />
+                    {cartCount > 0 && (
+                        <View style={styles.cartBadge}>
+                            <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
                 <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
                     <Text style={styles.menuButtonText}>☰</Text>
                 </TouchableOpacity>
@@ -97,11 +138,11 @@ export default function ProductDetailScreen() {
                     </TouchableOpacity>
                 </View>
             )}
-            <Image source={{ uri: `${API_BASE_URL.replace('/api', '')}/storage/products/${thumbnail}` }} style={styles.image} />
+            <Image source={{ uri: `http://localhost:8000/storage/${image}` }} style={styles.image} />
             <Text style={styles.name}>{name}</Text>
-            <Text style={styles.detail}>Marca: {brand}</Text>
+            {/* <Text style={styles.detail}>Marca: {brand}</Text>
             <Text style={styles.detail}>Talla: {size}</Text>
-            <Text style={styles.detail}>Color: {color}</Text>
+            <Text style={styles.detail}>Color: {color}</Text> */}
             <Text style={styles.detail}>Disponibles: {qty}</Text>
             <Text style={styles.detail}>Precio: ${price}</Text>
 
@@ -122,31 +163,46 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
     header: {
+        position: 'absolute',
+        top: -10,
+        left: 0,
+        right: 0,
+        height: 70,
+        backgroundColor: '#fff',
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: -20,
-        marginBottom: 10,
+        paddingHorizontal: 16,
+        zIndex: 999,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+
+    headerTitle: {
+        position: 'absolute',
+        top: 25,
+        left: 0,
+        right: 0,
+        textAlign: 'center',
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#000',
     },
 
     backButton: {
         padding: 10,
         position: 'absolute',
-        top: 10,
+        top: 19,
         left: 10,
         zIndex: 1000,
-    },
-
-    backButtonText: {
-        fontSize: 24,
-        color: '#000',
     },
     menuButton: {
         position: 'absolute',
         top: 10,
-        right: 10,
+        right: 12,
         zIndex: 1000,
-        padding: 10,
+        padding: 14,
     },
     menuButtonText: {
         fontSize: 24,
@@ -178,10 +234,10 @@ const styles = StyleSheet.create({
     },
     image: {
         width: '100%',
-        height: 200,
+        height: 300,
         borderRadius: 8,
         marginBottom: 20,
-        marginTop: 75,
+        marginTop: 55,
     },
     name: {
         fontSize: 22,
@@ -210,5 +266,30 @@ const styles = StyleSheet.create({
         color: '#fff',
         textAlign: 'center',
         fontWeight: 'bold',
+    },
+    cartBadge: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        backgroundColor: 'red',
+        borderRadius: 10,
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        minWidth: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    cartBadgeText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    iconButton: {
+        position: 'absolute',
+        top: 19,
+        right: 56,
+        zIndex: 1000,
+        padding: 10,
     },
 });

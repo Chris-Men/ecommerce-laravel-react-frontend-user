@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, Image, Dimensions, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '@/constants/config';
-
+import { useFocusEffect } from '@react-navigation/native';
 
 // Definición de la interfaz Category
 interface Category {
@@ -23,11 +23,35 @@ export default function HomeScreen() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
 
+    const [cartCount, setCartCount] = useState(0);
+
     const handleLogout = async () => {
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('userName'); // Eliminar el nombre del usuario al cerrar sesión
         router.replace('/login'); // Vuelve a la pantalla de login
     };
+
+    const fetchCartCount = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+
+            const response = await axios.get("http://localhost:8000/api/cart", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const items = response.data;
+            const totalQty = items.reduce((sum: number, item: any) => sum + item.qty, 0);
+            setCartCount(totalQty);
+        } catch (error) {
+            console.error('Error al obtener el carrito:', error);
+        }
+    };
+    useFocusEffect(
+        useCallback(() => {
+            fetchCartCount();
+        }, [])
+    );
 
     useEffect(() => {
         const fetchUserName = async () => {
@@ -50,7 +74,7 @@ export default function HomeScreen() {
                     return;
                 }
 
-                const response = await axios.get(`${API_BASE_URL}/user/categories`, {
+                const response = await axios.get("http://localhost:8000/api/user/categories", {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -94,7 +118,13 @@ export default function HomeScreen() {
                     </ThemedText>
                     <TouchableOpacity onPress={() => router.push('/cart')} style={styles.iconButton}>
                         <Ionicons name="cart-outline" size={24} color="#000" />
+                        {cartCount > 0 && (
+                            <View style={styles.cartBadge}>
+                                <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
+
                     <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
                         <Text style={styles.menuButtonText}>☰</Text>
                     </TouchableOpacity>
@@ -113,12 +143,12 @@ export default function HomeScreen() {
             </ThemedView>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                <ThemedView style={{ marginVertical: 60 }}>
+                <ThemedView style={{ marginVertical: 50 }}>
                     <TextInput
                         placeholder="Buscar categorías..."
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        style={[styles.searchInput, { marginBottom: -30 }]}
+                        style={[styles.searchInput, { marginBottom: -40 }]}
                     />
                 </ThemedView>
 
@@ -128,7 +158,7 @@ export default function HomeScreen() {
                         <TouchableOpacity key={item.id} onPress={() => handleCategoryPress(item)}>
                             <View style={styles.categoryCard}>
                                 <Image
-                                    source={{ uri: `${API_BASE_URL.replace('/api', '')}/storage/${item.image}` }}
+                                    source={{ uri: `http://localhost:8000/storage/${item.image}` }}
                                     style={styles.categoryImage}
                                     resizeMode="cover"
                                 />
@@ -152,21 +182,27 @@ const styles = StyleSheet.create({
     },
     header: {
         position: 'absolute',
-        top: 0,
+        top: -10,
         left: 0,
         right: 0,
-        backgroundColor: 'dark', // Cambia a 'white' si quieres que el header también sea blanco
-        zIndex: 1000,
-        paddingVertical: 10,
+        height: 70,
+        backgroundColor: '#fff',
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        paddingHorizontal: 16,
+        zIndex: 999,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
     },
+    
     iconButton: {
         position: 'absolute',
         right: 40,
         zIndex: 1000,
         padding: 10,
+        top: 10,
     },
     navbar: {
         flexDirection: 'row',
@@ -178,8 +214,9 @@ const styles = StyleSheet.create({
     welcomeText: {
         flex: 1,
         textAlign: 'left',
-        paddingLeft: 10,
         color: '#000', // Cambia el color según sea necesario
+        fontSize: 24,
+        top: 5,
     },
     menuButton: {
         padding: 10,
@@ -187,6 +224,7 @@ const styles = StyleSheet.create({
     menuButtonText: {
         color: '#000', // Cambia el color según sea necesario
         fontSize: 24,
+        top: 5,
     },
     dropdownMenu: {
         position: 'absolute',
@@ -215,17 +253,18 @@ const styles = StyleSheet.create({
     },
     categoryCard: {
         backgroundColor: '#f9f9f9',
-        padding: 15,
+        padding: 10,
         margin: 10,
-        borderRadius: 5,
-        width: Dimensions.get('window').width * 0.4, // Asegúrate que no supere el 50% para que se acomoden dos por fila
+        borderRadius: 10,
+        width: Dimensions.get('window').width * 0.8, // Asegúrate que no supere el 50% para que se acomoden dos por fila
         height: 300,
         alignItems: 'center',
     },
     categoryImage: {
-        width: '80%', // Ancho responsivo de la imagen
-        height: '70%', // Altura responsiva de la imagen
+        width: '100%', // Ancho responsivo de la imagen
+        height: '85%', // Altura responsiva de la imagen
         marginBottom: 10, // Espacio entre la imagen y el nombre
+        borderRadius: 5,
     },
     categoryName: {
         fontWeight: 'bold',
@@ -247,5 +286,23 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 40,
+    },
+    cartBadge: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        backgroundColor: 'red',
+        borderRadius: 10,
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        minWidth: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    cartBadgeText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
 });
