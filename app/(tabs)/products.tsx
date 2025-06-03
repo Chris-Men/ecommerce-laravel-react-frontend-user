@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
-import { API_BASE_URL } from '@/constants/config';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
 interface Product {
@@ -162,145 +161,167 @@ export default function ProductScreen() {
 }
 
 const styles = StyleSheet.create({
-    header: {
-        position: 'absolute',
-        top: -10,
-        left: 0,
-        right: 0,
-        height: 70,
-        backgroundColor: '#fff',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        zIndex: 999,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-    },
+  header: {
+    position: 'absolute',
+    top: -10,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
 
-    headerTitle: {
-        position: 'absolute',
-        top: 25,
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    
-    backButton: {
-        padding: 10,
-        position: 'absolute',
-        top: 19,
-        left: 10,
-        zIndex: 1000,
-    },
+  headerTitle: {
+    position: 'absolute',
+    top: 25,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#000',
+  },
 
-    container: {
-        flex: 1,
-        padding: 16,
-        backgroundColor: '#fff',
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 16,
-    },
-    iconButton: {
-        position: 'absolute',
-        top: 19,
-        right: 56,
-        zIndex: 1000,
-        padding: 10,
-    },
-    menuButton: {
-        position: 'absolute',
-        top: 10,
-        right: 12,
-        zIndex: 1000,
-        padding: 14,
-    },
-    menuButtonText: {
-        fontSize: 24,
-        color: '#000',
-    },
-    dropdownMenu: {
-        position: 'absolute',
-        top: 50,
-        right: 10,
-        backgroundColor: 'white',
-        borderRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
-        zIndex: 1001,
-    },
-    menuItem: {
-        padding: 10,
-    },
-    menuItemText: {
-        color: '#000',
-    },
-    productsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        gap: 10, // si usas React Native 0.71+
-        marginTop: 40,
-    },
-    productList: {
-        paddingTop: 50, // para que el menú no cubra los productos
-        paddingBottom: 30,
-        justifyContent: 'center',
-    },
+  backButton: {
+    padding: 10,
+    position: 'absolute',
+    top: 19,
+    left: 10,
+    zIndex: 1000,
+  },
+
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+
+  iconButton: {
+    position: 'absolute',
+    top: 19,
+    right: 56,
+    zIndex: 1000,
+    padding: 10,
+  },
+
+  menuButton: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    zIndex: 1000,
+    padding: 14,
+  },
+
+  menuButtonText: {
+    fontSize: 24,
+    color: '#000',
+  },
+
+  dropdownMenu: {
+    position: 'absolute',
+    top: 50,
+    right: 10,
+    backgroundColor: 'white',
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 1001,
+  },
+
+  menuItem: {
+    padding: 10,
+  },
+
+  menuItemText: {
+    color: '#000',
+  },
+
+  productsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 10, // si tu versión lo soporta
+    marginTop: 40,
+  },
+
+  productList: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    justifyContent: 'center',
+  },
+
     productCard: {
-        backgroundColor: '#f9f9f9',
-        padding: 10,
-        margin: 10,
-        borderRadius: 10,
-        width: Dimensions.get('window').width * 0.8,
-        height: 300,
-        alignItems: 'center',
-    },
-    productImage: {
-        width: '100%',
-        height: '85%',
-        marginBottom: 10,
-        borderRadius: 5,
-    },
-    productName: {
-        fontWeight: 'bold',
-        fontSize: 16,
-        textAlign: 'center',
-    },
-    productPrice: {
-        color: 'green',
-        fontSize: 14,
-    },
-    scrollContent: {
-        paddingBottom: 40,
-    },
-    cartBadge: {
-        position: 'absolute',
-        top: 5,
-        right: 5,
-        backgroundColor: 'red',
-        borderRadius: 10,
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-        minWidth: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
+    backgroundColor: '#f9f9f9',
+    padding: 120,
+    margin: 10,
+    borderRadius: 30,
+    width: Dimensions.get('window').width < 768
+      ? Dimensions.get('window').width * 0.9
+      : Dimensions.get('window').width * 0.4,
+    minHeight: 500, // ⬅ MÁS ALTO
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
 
-    cartBadgeText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
+ productImage: {
+  width: '100%',       // ⬅ Más ancho pero con un poco de margen lateral
+  height: 320,        // Ya ajustado previamente para que sea más alta
+  borderRadius: 8,
+  marginBottom: 10,
+  resizeMode: 'cover',
+},
+
+
+
+  productName: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+
+  productPrice: {
+    color: 'green',
+    fontSize: 14,
+  },
+
+  scrollContent: {
+    paddingBottom: 40,
+  },
+
+  cartBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  cartBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
 });

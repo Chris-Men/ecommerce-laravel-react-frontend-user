@@ -1,13 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, Image, Dimensions, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useRouter, Link } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-import { API_BASE_URL } from '@/constants/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Definición de la interfaz Category
 interface Category {
@@ -116,14 +115,29 @@ export default function HomeScreen() {
                     <ThemedText type="title" style={styles.welcomeText}>
                         ¡Bienvenido {userName}!
                     </ThemedText>
-                    <TouchableOpacity onPress={() => router.push('/cart')} style={styles.iconButton}>
-                        <Ionicons name="cart-outline" size={24} color="#000" />
-                        {cartCount > 0 && (
-                            <View style={styles.cartBadge}>
-                                <Text style={styles.cartBadgeText}>{cartCount}</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
+                    
+                    {/* Botones de navegación */}
+                    <View style={styles.navButtons}>
+                        {/* Botón de Reseñas */}
+                        <TouchableOpacity onPress={() => router.push('/reviews')} style={styles.navButton}>
+                            <Ionicons name="star-outline" size={22} color="#4e8cff" />
+                        </TouchableOpacity>
+                        
+                        {/* Botón de Cupones */}
+                        <TouchableOpacity onPress={() => router.push('/coupons')} style={styles.navButton}>
+                            <Ionicons name="ticket-outline" size={22} color="#ff6b35" />
+                        </TouchableOpacity>
+                        
+                        {/* Botón de Carrito */}
+                        <TouchableOpacity onPress={() => router.push('/cart')} style={styles.navButton}>
+                            <Ionicons name="cart-outline" size={22} color="#28a745" />
+                            {cartCount > 0 && (
+                                <View style={styles.cartBadge}>
+                                    <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
 
                     <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
                         <Text style={styles.menuButtonText}>☰</Text>
@@ -197,13 +211,6 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     
-    iconButton: {
-        position: 'absolute',
-        right: 40,
-        zIndex: 1000,
-        padding: 10,
-        top: 10,
-    },
     navbar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -218,6 +225,29 @@ const styles = StyleSheet.create({
         fontSize: 24,
         top: 5,
     },
+    
+    // Nuevos estilos para los botones de navegación
+    navButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginRight: 10,
+    },
+    
+    navButton: {
+        backgroundColor: '#f8f9fa',
+        padding: 10,
+        borderRadius: 25,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+        position: 'relative',
+    },
+    
     menuButton: {
         padding: 10,
     },
@@ -251,21 +281,29 @@ const styles = StyleSheet.create({
         gap: 10, // opcional si usas React Native v0.71+
         marginTop: 5,
     },
-    categoryCard: {
-        backgroundColor: '#f9f9f9',
-        padding: 10,
-        margin: 10,
-        borderRadius: 10,
-        width: Dimensions.get('window').width * 0.8, // Asegúrate que no supere el 50% para que se acomoden dos por fila
-        height: 300,
-        alignItems: 'center',
-    },
-    categoryImage: {
-        width: '100%', // Ancho responsivo de la imagen
-        height: '85%', // Altura responsiva de la imagen
-        marginBottom: 10, // Espacio entre la imagen y el nombre
-        borderRadius: 5,
-    },
+  categoryCard: {
+  backgroundColor: '#f9f9f9',
+  padding: 10,
+  marginVertical: 10,
+  marginHorizontal: 5,
+  borderRadius: 10,
+  width: Dimensions.get('window').width < 768
+    ? Dimensions.get('window').width * 0.9
+    : Dimensions.get('window').width * 0.45,
+  minHeight: 500, 
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+},
+
+
+categoryImage: {
+  width: '100%',
+  flex: 1,
+  borderRadius: 8,
+  resizeMode: 'cover', 
+  marginBottom: 10,
+},
+
     categoryName: {
         fontWeight: 'bold',
         fontSize: 16,
@@ -289,9 +327,9 @@ const styles = StyleSheet.create({
     },
     cartBadge: {
         position: 'absolute',
-        top: 5,
-        right: 5,
-        backgroundColor: 'red',
+        top: -2,
+        right: -2,
+        backgroundColor: '#dc3545',
         borderRadius: 10,
         paddingHorizontal: 5,
         paddingVertical: 1,
@@ -302,7 +340,7 @@ const styles = StyleSheet.create({
 
     cartBadgeText: {
         color: 'white',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
     },
 });

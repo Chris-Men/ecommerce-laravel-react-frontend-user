@@ -1,25 +1,41 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { isAxiosError } from 'axios';
-import Toast from 'react-native-toast-message';
-import { API_BASE_URL } from '@/constants/config';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import axios, { isAxiosError } from 'axios';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import { Picker } from '@react-native-picker/picker';
+
+// Definir los tipos
+interface ProductDetail {
+    id: string;
+    name: string;
+    image: string;
+    qty: number;
+    price: number;
+    brand?: { name: string };
+    size?: { name: string };
+    color?: { name: string };
+}
 
 export default function ProductDetailScreen() {
     const { id, name, image, brand, size, color, qty, price } = useLocalSearchParams();
     const [quantity, setQuantity] = useState('1');
     const [menuVisible, setMenuVisible] = useState(false);
     const [cartCount, setCartCount] = useState(0);
+    const [productDetails, setProductDetails] = useState<ProductDetail | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    // Debug: Ver qué datos están llegando
+    console.log('Parámetros recibidos:', { id, name, image, brand, size, color, qty, price });
 
     const handleLogout = async () => {
         await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('userName'); // Eliminar el nombre del usuario al cerrar sesión
-        router.replace('/login'); // Vuelve a la pantalla de login
+        await AsyncStorage.removeItem('userName');
+        router.replace('/login');
     };
 
     const fetchCartCount = async () => {
@@ -39,17 +55,39 @@ export default function ProductDetailScreen() {
         }
     };
 
+    // Nueva función para obtener detalles completos del producto
+    const fetchProductDetails = async () => {
+        if (!id) return;
+        
+        setLoading(true);
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await axios.get(`http://localhost:8000/api/products/${id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            console.log('Detalles del producto desde API:', response.data);
+            const productData = response.data.data || response.data;
+            setProductDetails(productData);
+        } catch (error) {
+            console.error('Error al obtener detalles del producto:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useFocusEffect(
         useCallback(() => {
             fetchCartCount();
+            fetchProductDetails(); // Obtener detalles completos del producto
         }, [])
     );
 
     const handleAddToCart = async () => {
         console.log('Intentando agregar al carrito...');
 
-        if (Number(quantity) > Number(qty)) {
-            Alert.alert('Cantidad no disponible', `Solo hay ${qty} en inventario`);
+        if (Number(quantity) > Number(productDetails?.qty || qty)) {
+            Alert.alert('Cantidad no disponible', `Solo hay ${productDetails?.qty || qty} en inventario`);
             console.log('Cantidad solicitada mayor al inventario');
             return;
         }
@@ -75,18 +113,17 @@ export default function ProductDetailScreen() {
             console.log('Respuesta del backend:', response.data);
 
             if (response.status === 200 || response.status === 201) {
-                setMenuVisible(false); // Asegúrate de cerrar el menú
+                setMenuVisible(false);
                 console.log('Mostrando alerta de agregado al carrito');
                 Toast.show({
                     type: 'custom',
                     text1: 'Agregado al carrito',
                     text2: `${name} x ${quantity}`,
-                    position: 'top', // Usa top, pero en el componente lo centramos
-                    visibilityTime: 2000, // 2 segundos
+                    position: 'top',
+                    visibilityTime: 2000,
                     autoHide: true,
                 });
 
-                //Actualizar el contador del carrito inmediatamente
                 await fetchCartCount();
             }
         } catch (error) {
@@ -132,30 +169,49 @@ export default function ProductDetailScreen() {
                     <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
                         <Text style={styles.menuItemText}>Cerrar sesión</Text>
                     </TouchableOpacity>
-                    {/* Puedes agregar más opciones aquí */}
                     <TouchableOpacity style={styles.menuItem}>
                         <Text style={styles.menuItemText}>Otra Opción</Text>
                     </TouchableOpacity>
                 </View>
             )}
-            <Image source={{ uri: `http://localhost:8000/storage/${image}` }} style={styles.image} />
-            <Text style={styles.name}>{name}</Text>
-            {/* <Text style={styles.detail}>Marca: {brand}</Text>
-            <Text style={styles.detail}>Talla: {size}</Text>
-            <Text style={styles.detail}>Color: {color}</Text> */}
-            <Text style={styles.detail}>Disponibles: {qty}</Text>
-            <Text style={styles.detail}>Precio: ${price}</Text>
+            
+            <Image 
+                source={{ uri: `http://localhost:8000/storage/${image}` }} 
+                style={styles.image} 
+                onError={(e) => console.log('Error cargando imagen:', e.nativeEvent.error)}
+            />
+            <Text style={styles.name}>{productDetails?.name || name || 'Sin nombre'}</Text>
+            
+            {loading ? (
+                <Text style={styles.detail}>Cargando detalles...</Text>
+            ) : (
+                <>
+                    {/* Usar los datos de la API si están disponibles, sino usar los parámetros */}
+                    {(productDetails?.brand?.name || brand) && (
+                        <Text style={styles.detail}>Marca: {productDetails?.brand?.name || brand}</Text>
+                    )}
+                    {(productDetails?.size?.name || size) && (
+                        <Text style={styles.detail}>Talla: {productDetails?.size?.name || size}</Text>
+                    )}
+                    {(productDetails?.color?.name || color) && (
+                        <Text style={styles.detail}>Color: {productDetails?.color?.name || color}</Text>
+                    )}
+                    
+                    <Text style={styles.detail}>Disponibles: {productDetails?.qty || qty || 0}</Text>
+                    <Text style={styles.detail}>Precio: ${productDetails?.price || price || 0}</Text>
+                </>
+            )}
 
             <Picker
                 selectedValue={quantity}
                 style={styles.picker}
                 onValueChange={(itemValue) => setQuantity(itemValue)}
+                enabled={!loading}
             >
-                {Array.from({ length: Number(qty) }, (_, i) => (
+                {Array.from({ length: Number(productDetails?.qty || qty || 0) }, (_, i) => (
                     <Picker.Item key={i + 1} label={`${i + 1}`} value={`${i + 1}`} />
                 ))}
             </Picker>
-
 
             <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
                 <Text style={styles.buttonText}>Agregar al carrito</Text>
@@ -181,7 +237,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 4,
     },
-
     headerTitle: {
         position: 'absolute',
         top: 25,
@@ -192,7 +247,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#000',
     },
-
     backButton: {
         padding: 10,
         position: 'absolute',
@@ -251,15 +305,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 5,
     },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        padding: 10,
-        marginTop: 10,
-        marginBottom: 20,
-        width: '40%',
-    },
     button: {
         backgroundColor: '#007bff',
         padding: 15,
@@ -282,7 +327,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-
     cartBadgeText: {
         color: 'white',
         fontSize: 12,
