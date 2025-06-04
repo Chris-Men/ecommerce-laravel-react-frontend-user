@@ -148,9 +148,10 @@ export default function HomeScreen() {
                                 <Text style={styles.menuItemText}>Cerrar sesión</Text>
                             </TouchableOpacity>
                             {/* Puedes agregar más opciones aquí */}
-                            <TouchableOpacity style={styles.menuItem}>
-                                <Text style={styles.menuItemText}>Otra Opción</Text>
-                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => router.push('/userprofile')} style={styles.menuItem}>
+  <Text style={styles.menuItemText}>Mi Perfil</Text>
+</TouchableOpacity>
+
                         </View>
                     )}
                 </ThemedView>

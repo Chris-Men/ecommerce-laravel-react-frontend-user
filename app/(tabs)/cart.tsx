@@ -1,20 +1,25 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking';
-import { API_BASE_URL } from '@/constants/config';
-import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import axios from 'axios';
+import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
+import React, { JSX, useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isMobile = screenWidth < 768;
 
 interface CartItem {
   id: number;
@@ -24,24 +29,35 @@ interface CartItem {
   line_total: number;
 }
 
-export default function CartScreen() {
+interface CartSummaryResponse {
+  items: CartItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  coupon_applied: string | null;
+}
+
+interface CheckoutResponse {
+  url: string;
+}
+
+export default function CartScreen(): JSX.Element {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [subtotal, setSubtotal] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [total, setTotal] = useState(0);
+  const [subtotal, setSubtotal] = useState<number>(0);
+  const [discount, setDiscount] = useState<number>(0);
+  const [total, setTotal] = useState<number>(0);
   const [coupon, setCoupon] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+
   const router = useRouter();
 
-  const fetchCartSummary = async () => {
+  const fetchCartSummary = async (): Promise<void> => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get("http://localhost:8000/api/cart/summary", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.get<CartSummaryResponse>("http://localhost:8000/api/cart/summary", {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = response.data;
@@ -55,47 +71,58 @@ export default function CartScreen() {
     }
   };
 
-  const removeItem = async (id: number) => {
+  const removeItem = async (id: number): Promise<void> => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
       await axios.delete(`http://localhost:8000/api/cart/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-
-      fetchCartSummary(); // Recargar después de eliminar
+      fetchCartSummary();
     } catch (error) {
       console.error('Error al eliminar el producto:', error);
       Alert.alert('Error', 'No se pudo eliminar el producto.');
     }
   };
 
-  const handleCheckout = async () => {
+  const updateQuantity = async (id: number, qty: number): Promise<void> => {
+    try {
+      if (qty < 1) return;
+
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      await axios.put(
+        `http://localhost:8000/api/cart/${id}`,
+        { qty },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      fetchCartSummary();
+    } catch (error) {
+      console.error('Error al actualizar cantidad:', error);
+    }
+  };
+
+  const handleCheckout = async (): Promise<void> => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.post(
+      const response = await axios.post<CheckoutResponse>(
         'http://localhost:8000/api/pay-orders-stripe',
         {
-          success_url: 'https://example.com/success', // usa el esquema de tu app
+          success_url: 'https://example.com/success',
           cancel_url: 'https://example.com/cancel',
           coupon_code: coupon ?? '',
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const url = response.data.url;
-      await Linking.openURL(url); // abre en navegador externo
+      await Linking.openURL(response.data.url);
     } catch (error) {
       console.error('Error en el proceso de pago:', error);
       Alert.alert('Error', 'No se pudo iniciar el proceso de pago.');
@@ -110,10 +137,8 @@ export default function CartScreen() {
     }, [])
   );
 
-
-  // Manejar retorno desde Stripe con deep linking
   useEffect(() => {
-    const handleDeepLink = (event: Linking.EventType) => {
+    const handleDeepLink = (event: Linking.EventType): void => {
       const url = event.url;
 
       if (url.includes('success')) {
@@ -130,57 +155,123 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header con botón de retroceso */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color="#2563eb" />
         </TouchableOpacity>
-        <Text style={styles.title}>Carrito de Compras</Text>
+        <Text style={styles.title}>🛒 Carrito de Compras</Text>
       </View>
 
-      {/* Contenido del carrito */}
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {cartItems.length === 0 ? (
-          <Text style={styles.emptyCartText}>El carrito está vacío.</Text>
-        ) : (
-          cartItems.map((item) => (
-            <View key={item.id} style={styles.itemContainer}>
-              <View style={styles.itemDetails}>
-                <Text style={styles.productName}>{item.product_name}</Text>
-                <Text>Cantidad: {item.qty}</Text>
-                <Text>Precio unitario: ${item.unit_price.toFixed(2)}</Text>
-                <Text>Total: ${item.line_total.toFixed(2)}</Text>
-              </View>
-              <TouchableOpacity onPress={() => removeItem(item.id)}>
-                <Ionicons name="trash-outline" size={24} color="red" />
-              </TouchableOpacity>
-            </View>
-          ))
-        )}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <View style={styles.summary}>
-          <Text>Subtotal: ${subtotal.toFixed(2)}</Text>
-          {discount > 0 && (
-            <Text>
-              Descuento: -${discount.toFixed(2)} (Cupón: {coupon})
-            </Text>
-          )}
-          <Text style={styles.total}>Total: ${total.toFixed(2)}</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.checkoutButton}
-          onPress={handleCheckout}
-          disabled={loading}
+      <View style={styles.content}>
+        {/* Main Content */}
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={!isWeb}
+          bounces={!isWeb}
+          scrollEventThrottle={16}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
+          {cartItems.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="cart-outline" size={80} color="#d1d5db" />
+              <Text style={styles.emptyCartText}>Tu carrito está vacío</Text>
+              <Text style={styles.emptyCartSubText}>
+                Agrega algunos productos para comenzar
+              </Text>
+            </View>
           ) : (
-            <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+            <View style={styles.itemsList}>
+              {cartItems.map((item) => (
+                <View key={item.id} style={styles.itemContainer}>
+                  <View style={styles.itemContent}>
+                    <View style={styles.itemHeader}>
+                      <Text style={styles.productName}>{item.product_name}</Text>
+                      <TouchableOpacity 
+                        onPress={() => removeItem(item.id)}
+                        style={styles.removeButton}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.itemDetails}>
+                      <Text style={styles.priceText}>
+                        ${item.unit_price.toFixed(2)} c/u
+                      </Text>
+                      
+                      <View style={styles.quantityContainer}>
+                        <TouchableOpacity 
+                          onPress={() => updateQuantity(item.id, item.qty - 1)}
+                          style={styles.quantityButton}
+                        >
+                          <Ionicons name="remove" size={18} color="#6b7280" />
+                        </TouchableOpacity>
+                        <Text style={styles.qtyText}>{item.qty}</Text>
+                        <TouchableOpacity 
+                          onPress={() => updateQuantity(item.id, item.qty + 1)}
+                          style={styles.quantityButton}
+                        >
+                          <Ionicons name="add" size={18} color="#6b7280" />
+                        </TouchableOpacity>
+                      </View>
+                      
+                      <Text style={styles.totalText}>
+                        ${item.line_total.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
           )}
-        </TouchableOpacity>
+        </ScrollView>
+
+        {/* Summary Footer */}
+        {cartItems.length > 0 && (
+          <View style={styles.footer}>
+            <View style={styles.summary}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal:</Text>
+                <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+              </View>
+              
+              {discount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, styles.discountLabel]}>
+                    Descuento {coupon ? `(${coupon})` : ''}:
+                  </Text>
+                  <Text style={[styles.summaryValue, styles.discountValue]}>
+                    -${discount.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+              
+              <View style={[styles.summaryRow, styles.totalRow]}>
+                <Text style={styles.totalLabel}>Total:</Text>
+                <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.checkoutButton, loading && styles.checkoutButtonDisabled]}
+              onPress={handleCheckout}
+              disabled={loading}
+            >
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.checkoutButtonText}>Procesando...</Text>
+                </View>
+              ) : (
+                <View style={styles.checkoutContent}>
+                  <Ionicons name="card-outline" size={20} color="#fff" />
+                  <Text style={styles.checkoutButtonText}>Proceder al Pago</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -189,98 +280,255 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-    // paddingTop: 70,
+    backgroundColor: '#f8fafc',
   },
   header: {
-    position: 'absolute',
-    top: -10,
-    left: 0,
-    right: 0,
-    height: 70,
     backgroundColor: '#fff',
+    paddingTop: isWeb ? 20 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    zIndex: 999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+    }),
   },
-
   backButton: {
-    padding: 10,
     position: 'absolute',
-    top: 19,
-    left: 10,
-    zIndex: 1000,
+    left: 20,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
   },
-
-  scrollContainer: {
-    paddingBottom: 40,
-    paddingTop: 60,
-  },
-
   title: {
-    position: 'absolute',
-    top: 25,
-    left: 0,
-    right: 0,
+    fontSize: isMobile ? 20 : 24,
+    fontWeight: '700',
+    color: '#1f2937',
     textAlign: 'center',
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000',
+  },
+  content: {
+    flex: 1,
+    maxWidth: isWeb ? 800 : '100%',
+    alignSelf: 'center',
+    width: '100%',
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  scrollContainer: {
+    padding: 20,
+    paddingBottom: 120,
+    flexGrow: 1,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 100,
+  },
+  emptyCartText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptyCartSubText: {
+    fontSize: 16,
+    color: '#9ca3af',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  itemsList: {
+    gap: 16,
   },
   itemContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07)',
+      },
+    }),
+  },
+  itemContent: {
+    gap: 12,
+  },
+  itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: '#f3f3f3',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  itemDetails: {
-    flex: 1,
-    paddingRight: 10,
+    alignItems: 'flex-start',
   },
   productName: {
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    flex: 1,
+    marginRight: 12,
+  },
+  removeButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fef2f2',
+  },
+  itemDetails: {
+    flexDirection: isMobile ? 'column' : 'row',
+    justifyContent: 'space-between',
+    alignItems: isMobile ? 'flex-start' : 'center',
+    gap: isMobile ? 12 : 16,
+  },
+  priceText: {
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    padding: 4,
+  },
+  quantityButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
+  },
+  qtyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginHorizontal: 16,
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0 -4px 6px rgba(0, 0, 0, 0.07)',
+      },
+    }),
   },
   summary: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#e6e6e6',
-    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
   },
-  total: {
-    marginTop: 10,
-    fontWeight: 'bold',
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLabel: {
     fontSize: 16,
+    color: '#6b7280',
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  discountLabel: {
+    color: '#059669',
+  },
+  discountValue: {
+    color: '#059669',
+  },
+  totalRow: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    marginTop: 8,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2563eb',
   },
   checkoutButton: {
-    backgroundColor: '#2196F3',
-    padding: 15,
-    marginTop: 20,
-    borderRadius: 8,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
+  },
+  checkoutButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  checkoutContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   checkoutButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-  },
-  emptyCartText: {
-    textAlign: 'center',
-    marginTop: 30,
-    fontSize: 16,
-    color: '#666',
-  },
-  footer: {
-    backgroundColor: '#fff',
-    paddingBottom: 10,
-    paddingHorizontal: 8,
-    borderColor: '#ddd',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
