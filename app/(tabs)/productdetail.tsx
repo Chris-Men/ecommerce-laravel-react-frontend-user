@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import axios, { isAxiosError } from 'axios';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 import { Picker } from '@react-native-picker/picker';
@@ -143,6 +143,7 @@ export default function ProductDetailScreen() {
 
     return (
         <View style={styles.container}>
+            {/* Header fijo */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.replace('/products')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#000" />
@@ -164,6 +165,7 @@ export default function ProductDetailScreen() {
                 </TouchableOpacity>
             </View>
 
+            {/* Menú desplegable */}
             {menuVisible && (
                 <View style={styles.dropdownMenu}>
                     <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
@@ -174,179 +176,301 @@ export default function ProductDetailScreen() {
                     </TouchableOpacity>
                 </View>
             )}
-            
-            <Image 
-                source={{ uri: `http://localhost:8000/storage/${image}` }} 
-                style={styles.image} 
-                onError={(e) => console.log('Error cargando imagen:', e.nativeEvent.error)}
-            />
-            <Text style={styles.name}>{productDetails?.name || name || 'Sin nombre'}</Text>
-            
-            {loading ? (
-                <Text style={styles.detail}>Cargando detalles...</Text>
-            ) : (
-                <>
-                    {/* Usar los datos de la API si están disponibles, sino usar los parámetros */}
-                    {(productDetails?.brand?.name || brand) && (
-                        <Text style={styles.detail}>Marca: {productDetails?.brand?.name || brand}</Text>
-                    )}
-                    {(productDetails?.size?.name || size) && (
-                        <Text style={styles.detail}>Talla: {productDetails?.size?.name || size}</Text>
-                    )}
-                    {(productDetails?.color?.name || color) && (
-                        <Text style={styles.detail}>Color: {productDetails?.color?.name || color}</Text>
-                    )}
-                    
-                    <Text style={styles.detail}>Disponibles: {productDetails?.qty || qty || 0}</Text>
-                    <Text style={styles.detail}>Precio: ${productDetails?.price || price || 0}</Text>
-                </>
-            )}
 
-            <Picker
-                selectedValue={quantity}
-                style={styles.picker}
-                onValueChange={(itemValue) => setQuantity(itemValue)}
-                enabled={!loading}
+            {/* Contenido desplazable */}
+            <ScrollView 
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                bounces={true}
             >
-                {Array.from({ length: Number(productDetails?.qty || qty || 0) }, (_, i) => (
-                    <Picker.Item key={i + 1} label={`${i + 1}`} value={`${i + 1}`} />
-                ))}
-            </Picker>
+                <Image 
+                    source={{ uri: `http://localhost:8000/storage/${image}` }} 
+                    style={styles.image} 
+                    onError={(e) => console.log('Error cargando imagen:', e.nativeEvent.error)}
+                />
+                <Text style={styles.name}>{productDetails?.name || name || 'Sin nombre'}</Text>
+                
+                {loading ? (
+                    <Text style={styles.detail}>Cargando detalles...</Text>
+                ) : (
+                    <>
+                        {/* Usar los datos de la API si están disponibles, sino usar los parámetros */}
+                        {(productDetails?.brand?.name || brand) && (
+                            <Text style={styles.detail}>Marca: {productDetails?.brand?.name || brand}</Text>
+                        )}
+                        {(productDetails?.size?.name || size) && (
+                            <Text style={styles.detail}>Talla: {productDetails?.size?.name || size}</Text>
+                        )}
+                        {(productDetails?.color?.name || color) && (
+                            <Text style={styles.detail}>Color: {productDetails?.color?.name || color}</Text>
+                        )}
+                        
+                        <Text style={styles.detail}>Disponibles: {productDetails?.qty || qty || 0}</Text>
+                        <Text style={styles.detail}>Precio: ${productDetails?.price || price || 0}</Text>
+                    </>
+                )}
 
-            <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
-                <Text style={styles.buttonText}>Agregar al carrito</Text>
-            </TouchableOpacity>
+                <View style={styles.quantitySection}>
+                    <Text style={styles.quantityLabel}>Cantidad:</Text>
+                    <Picker
+                        selectedValue={quantity}
+                        style={styles.picker}
+                        onValueChange={(itemValue) => setQuantity(itemValue)}
+                        enabled={!loading}
+                    >
+                        {Array.from({ length: Number(productDetails?.qty || qty || 0) }, (_, i) => (
+                            <Picker.Item key={i + 1} label={`${i + 1}`} value={`${i + 1}`} />
+                        ))}
+                    </Picker>
+                </View>
+
+                <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
+                    <Text style={styles.buttonText}>Agregar al carrito</Text>
+                </TouchableOpacity>
+            </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    header: {
-        position: 'absolute',
-        top: -10,
-        left: 0,
-        right: 0,
-        height: 70,
-        backgroundColor: '#fff',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        zIndex: 999,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-    },
-    headerTitle: {
-        position: 'absolute',
-        top: 25,
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    backButton: {
-        padding: 10,
-        position: 'absolute',
-        top: 19,
-        left: 10,
-        zIndex: 1000,
-    },
-    menuButton: {
-        position: 'absolute',
-        top: 10,
-        right: 12,
-        zIndex: 1000,
-        padding: 14,
-    },
-    menuButtonText: {
-        fontSize: 24,
-        color: '#000',
-    },
-    dropdownMenu: {
-        position: 'absolute',
-        top: 50,
-        right: 10,
-        backgroundColor: 'white',
-        borderRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
-        zIndex: 1001,
-    },
-    menuItem: {
-        padding: 10,
-    },
-    menuItemText: {
-        color: '#000',
-    },
-    container: {
-        padding: 20,
-        backgroundColor: '#fff',
-        flex: 1,
-    },
-    image: {
-        width: '100%',
-        height: 300,
-        borderRadius: 8,
-        marginBottom: 20,
-        marginTop: 55,
-    },
-    name: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    detail: {
-        fontSize: 16,
-        marginBottom: 5,
-    },
-    button: {
-        backgroundColor: '#007bff',
-        padding: 15,
-        borderRadius: 5,
-    },
-    buttonText: {
-        color: '#fff',
-        textAlign: 'center',
-        fontWeight: 'bold',
-    },
-    cartBadge: {
-        position: 'absolute',
-        top: 5,
-        right: 5,
-        backgroundColor: 'red',
-        borderRadius: 10,
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-        minWidth: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cartBadgeText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    iconButton: {
-        position: 'absolute',
-        top: 19,
-        right: 56,
-        zIndex: 1000,
-        padding: 10,
-    },
-    picker: {
-        height: 50,
-        width: '40%',
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 5,
-        marginBottom: 20,
-        marginTop: 10,
-        paddingLeft: 5,
-    },
+  // === HEADER STYLES ===
+  header: {
+    position: 'absolute',
+    top: -10,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    zIndex: 999,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  
+  headerTitle: {
+    position: 'absolute',
+    top: 25,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    letterSpacing: 0.5,
+  },
+  
+  // === NAVIGATION BUTTONS ===
+  backButton: {
+    position: 'absolute',
+    top: 19,
+    left: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
+    zIndex: 1000,
+  },
+  
+  menuButton: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
+    zIndex: 1000,
+  },
+  
+  menuButtonText: {
+    fontSize: 20,
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  
+  iconButton: {
+    position: 'absolute',
+    top: 19,
+    right: 56,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
+    zIndex: 1000,
+  },
+  
+  // === DROPDOWN MENU ===
+  dropdownMenu: {
+    position: 'absolute',
+    top: 50,
+    right: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    minWidth: 160,
+    paddingVertical: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1001,
+  },
+  
+  menuItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  
+  menuItemText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    fontWeight: '500',
+  },
+  
+  // === MAIN CONTAINER ===
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  
+  // === SCROLL VIEW STYLES ===
+  scrollView: {
+    flex: 1,
+    marginTop: 60, // Espacio para el header fijo
+  },
+  
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40, // Espacio extra al final
+  },
+  
+  // === CONTENT STYLES ===
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 24,
+    backgroundColor: '#f8f9fa',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  
+  name: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 16,
+    lineHeight: 30,
+  },
+  
+  detail: {
+    fontSize: 16,
+    color: '#6c757d',
+    marginBottom: 8,
+    lineHeight: 22,
+    fontWeight: '400',
+  },
+  
+  // === QUANTITY SECTION ===
+  quantitySection: {
+    marginVertical: 16,
+  },
+  
+  quantityLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  
+  // === BUTTONS ===
+  button: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  
+  // === CART BADGE ===
+  cartBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    minHeight: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  
+  cartBadgeText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  
+  // === FORM ELEMENTS ===
+  picker: {
+    height: 50,
+    width: '100%',
+    borderColor: '#e9ecef',
+    borderWidth: 2,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#495057',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
 });

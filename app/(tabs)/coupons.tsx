@@ -5,11 +5,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   SafeAreaView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -31,17 +29,6 @@ export default function CouponsPage() {
   const router = useRouter();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(false);
-  const [applyModalVisible, setApplyModalVisible] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
-  // Form data para aplicar cupón
-  const [couponNameToApply, setCouponNameToApply] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-
-  const showSuccessMessage = (msg: string) => {
-    setSuccessMessage(msg);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
 
   // Obtener cupones desde la API
   const fetchCoupons = async () => {
@@ -87,41 +74,6 @@ export default function CouponsPage() {
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Aplicar cupón
-  const handleApplyCoupon = async () => {
-    if (!couponNameToApply.trim()) {
-      return Alert.alert('Validación', 'Ingresa el nombre del cupón.');
-    }
-
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await fetch(`${API_URL}/coupons/apply`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: couponNameToApply.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setAppliedCoupon(data.coupon);
-        showSuccessMessage('Cupón aplicado exitosamente.');
-        setCouponNameToApply('');
-        setApplyModalVisible(false);
-      } else {
-        Alert.alert('Error', data.error || 'Cupón no válido o caducado');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo aplicar el cupón');
     }
   };
 
@@ -198,33 +150,6 @@ export default function CouponsPage() {
           <Text style={styles.welcomeText}>🎫 Cupones de Descuento</Text>
         </View>
 
-        {successMessage && (
-          <View style={styles.successMessageContainer}>
-            <Text style={styles.successMessageText}>{successMessage}</Text>
-          </View>
-        )}
-
-        {appliedCoupon && (
-          <View style={styles.appliedCouponContainer}>
-            <Text style={styles.appliedCouponTitle}>✅ Cupón Aplicado</Text>
-            <Text style={styles.appliedCouponText}>
-              {appliedCoupon.name} - {formatDiscount(appliedCoupon.discount_type, appliedCoupon.discount_value)} de descuento
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={() => {
-              setCouponNameToApply('');
-              setApplyModalVisible(true);
-            }}
-          >
-            <Text style={styles.applyButtonText}>Aplicar Cupón</Text>
-          </TouchableOpacity>
-        </View>
-
         {loading ? (
           <ActivityIndicator size="large" color="#4e8cff" style={{ marginTop: 50 }} />
         ) : (
@@ -295,44 +220,6 @@ export default function CouponsPage() {
             }}
           />
         )}
-
-        {/* Modal para aplicar cupón */}
-        <Modal
-          visible={applyModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setApplyModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Aplicar Cupón</Text>
-              
-              <Text style={styles.label}>Nombre del Cupón</Text>
-              <TextInput
-                style={styles.input}
-                value={couponNameToApply}
-                onChangeText={setCouponNameToApply}
-                placeholder="Ingresa el código del cupón"
-                autoCapitalize="characters"
-              />
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setApplyModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={handleApplyCoupon}
-                >
-                  <Text style={styles.submitButtonText}>Aplicar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -368,51 +255,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 20,
-  },
-  successMessageContainer: {
-    backgroundColor: '#d4edda',
-    borderColor: '#c3e6cb',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-  },
-  successMessageText: {
-    color: '#155724',
-    fontSize: 14,
-  },
-  appliedCouponContainer: {
-    backgroundColor: '#d1ecf1',
-    borderColor: '#bee5eb',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-  },
-  appliedCouponTitle: {
-    color: '#0c5460',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  appliedCouponText: {
-    color: '#0c5460',
-    fontSize: 14,
-  },
-  buttonsContainer: {
-    marginBottom: 20,
-  },
-  applyButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  applyButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
   },
   couponCard: {
     backgroundColor: 'white',
@@ -496,70 +338,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#888',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxWidth: 500,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: 'white',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 25,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#6c757d',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submitButton: {
-    flex: 1,
-    backgroundColor: '#4e8cff',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginLeft: 10,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
