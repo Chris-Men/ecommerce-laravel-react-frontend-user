@@ -13,6 +13,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -41,6 +42,15 @@ interface CheckoutResponse {
   url: string;
 }
 
+interface CouponResponse {
+  message: string;
+  discount: number;
+  coupon: {
+    id: number;
+    name: string;
+  };
+}
+
 export default function CartScreen(): JSX.Element {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [subtotal, setSubtotal] = useState<number>(0);
@@ -48,15 +58,25 @@ export default function CartScreen(): JSX.Element {
   const [total, setTotal] = useState<number>(0);
   const [coupon, setCoupon] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  
+  // Estados para cupones
+  const [couponInput, setCouponInput] = useState<string>('');
+  const [couponLoading, setCouponLoading] = useState<boolean>(false);
+  const [couponMessage, setCouponMessage] = useState<string>('');
+  const [couponMessageType, setCouponMessageType] = useState<'success' | 'error' | null>(null);
 
   const router = useRouter();
 
-  const fetchCartSummary = async (): Promise<void> => {
+  const fetchCartSummary = async (couponCode?: string): Promise<void> => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get<CartSummaryResponse>("http://localhost:8000/api/cart/summary", {
+      const url = couponCode 
+        ? `http://localhost:8000/api/cart/summary?coupon=${encodeURIComponent(couponCode)}`
+        : "http://localhost:8000/api/cart/summary";
+
+      const response = await axios.get<CartSummaryResponse>(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -71,6 +91,51 @@ export default function CartScreen(): JSX.Element {
     }
   };
 
+  const applyCoupon = async (): Promise<void> => {
+    if (!couponInput.trim()) {
+      setCouponMessage('Por favor ingresa un código de cupón');
+      setCouponMessageType('error');
+      return;
+    }
+
+    try {
+      setCouponLoading(true);
+      setCouponMessage('');
+      setCouponMessageType(null);
+
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const response = await axios.post<CouponResponse>(
+        'http://localhost:8000/api/cart/apply-coupon',
+        { coupon: couponInput.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setCouponMessage(response.data.message);
+      setCouponMessageType('success');
+      
+      // Actualizar el resumen del carrito con el cupón aplicado
+      await fetchCartSummary(couponInput.trim());
+      
+      // Limpiar el input
+      setCouponInput('');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Error al aplicar el cupón';
+      setCouponMessage(errorMessage);
+      setCouponMessageType('error');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = async (): Promise<void> => {
+    setCoupon(null);
+    setCouponMessage('');
+    setCouponMessageType(null);
+    await fetchCartSummary();
+  };
+
   const removeItem = async (id: number): Promise<void> => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -80,7 +145,8 @@ export default function CartScreen(): JSX.Element {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      fetchCartSummary();
+      // Refrescar con el cupón actual si existe
+      await fetchCartSummary(coupon || undefined);
     } catch (error) {
       console.error('Error al eliminar el producto:', error);
       Alert.alert('Error', 'No se pudo eliminar el producto.');
@@ -100,7 +166,8 @@ export default function CartScreen(): JSX.Element {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      fetchCartSummary();
+      // Refrescar con el cupón actual si existe
+      await fetchCartSummary(coupon || undefined);
     } catch (error) {
       console.error('Error al actualizar cantidad:', error);
     }
@@ -181,49 +248,120 @@ export default function CartScreen(): JSX.Element {
               </Text>
             </View>
           ) : (
-            <View style={styles.itemsList}>
-              {cartItems.map((item) => (
-                <View key={item.id} style={styles.itemContainer}>
-                  <View style={styles.itemContent}>
-                    <View style={styles.itemHeader}>
-                      <Text style={styles.productName}>{item.product_name}</Text>
-                      <TouchableOpacity 
-                        onPress={() => removeItem(item.id)}
-                        style={styles.removeButton}
-                      >
-                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                      </TouchableOpacity>
-                    </View>
-                    
-                    <View style={styles.itemDetails}>
-                      <Text style={styles.priceText}>
-                        ${item.unit_price.toFixed(2)} c/u
-                      </Text>
-                      
-                      <View style={styles.quantityContainer}>
+            <>
+              <View style={styles.itemsList}>
+                {cartItems.map((item) => (
+                  <View key={item.id} style={styles.itemContainer}>
+                    <View style={styles.itemContent}>
+                      <View style={styles.itemHeader}>
+                        <Text style={styles.productName}>{item.product_name}</Text>
                         <TouchableOpacity 
-                          onPress={() => updateQuantity(item.id, item.qty - 1)}
-                          style={styles.quantityButton}
+                          onPress={() => removeItem(item.id)}
+                          style={styles.removeButton}
                         >
-                          <Ionicons name="remove" size={18} color="#6b7280" />
-                        </TouchableOpacity>
-                        <Text style={styles.qtyText}>{item.qty}</Text>
-                        <TouchableOpacity 
-                          onPress={() => updateQuantity(item.id, item.qty + 1)}
-                          style={styles.quantityButton}
-                        >
-                          <Ionicons name="add" size={18} color="#6b7280" />
+                          <Ionicons name="trash-outline" size={20} color="#ef4444" />
                         </TouchableOpacity>
                       </View>
                       
-                      <Text style={styles.totalText}>
-                        ${item.line_total.toFixed(2)}
-                      </Text>
+                      <View style={styles.itemDetails}>
+                        <Text style={styles.priceText}>
+                          ${item.unit_price.toFixed(2)} c/u
+                        </Text>
+                        
+                        <View style={styles.quantityContainer}>
+                          <TouchableOpacity 
+                            onPress={() => updateQuantity(item.id, item.qty - 1)}
+                            style={styles.quantityButton}
+                          >
+                            <Ionicons name="remove" size={18} color="#6b7280" />
+                          </TouchableOpacity>
+                          <Text style={styles.qtyText}>{item.qty}</Text>
+                          <TouchableOpacity 
+                            onPress={() => updateQuantity(item.id, item.qty + 1)}
+                            style={styles.quantityButton}
+                          >
+                            <Ionicons name="add" size={18} color="#6b7280" />
+                          </TouchableOpacity>
+                        </View>
+                        
+                        <Text style={styles.totalText}>
+                          ${item.line_total.toFixed(2)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+
+              {/* Cupón Section */}
+              <View style={styles.couponSection}>
+                <Text style={styles.couponTitle}>
+                  <Ionicons name="pricetag-outline" size={20} color="#2563eb" /> Código de Descuento
+                </Text>
+                
+                {coupon ? (
+                  <View style={styles.appliedCouponContainer}>
+                    <View style={styles.appliedCouponContent}>
+                      <View style={styles.appliedCouponInfo}>
+                        <Ionicons name="checkmark-circle" size={20} color="#059669" />
+                        <Text style={styles.appliedCouponText}>
+                          Cupón aplicado: <Text style={styles.couponCode}>{coupon}</Text>
+                        </Text>
+                      </View>
+                      <TouchableOpacity 
+                        onPress={removeCoupon}
+                        style={styles.removeCouponButton}
+                      >
+                        <Ionicons name="close" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.couponInputContainer}>
+                    <View style={styles.couponInputWrapper}>
+                      <TextInput
+                        style={styles.couponInput}
+                        placeholder="Ingresa tu código de cupón"
+                        value={couponInput}
+                        onChangeText={setCouponInput}
+                        autoCapitalize="characters"
+                        placeholderTextColor="#9ca3af"
+                      />
+                      <TouchableOpacity
+                        style={[styles.applyCouponButton, couponLoading && styles.applyCouponButtonDisabled]}
+                        onPress={applyCoupon}
+                        disabled={couponLoading}
+                      >
+                        {couponLoading ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Text style={styles.applyCouponButtonText}>Aplicar</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {couponMessage && (
+                      <View style={[
+                        styles.couponMessage,
+                        couponMessageType === 'success' ? styles.couponMessageSuccess : styles.couponMessageError
+                      ]}>
+                        <Ionicons 
+                          name={couponMessageType === 'success' ? "checkmark-circle" : "alert-circle"} 
+                          size={16} 
+                          color={couponMessageType === 'success' ? "#059669" : "#ef4444"} 
+                        />
+                        <Text style={[
+                          styles.couponMessageText,
+                          couponMessageType === 'success' ? styles.couponMessageTextSuccess : styles.couponMessageTextError
+                        ]}>
+                          {couponMessage}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            </>
           )}
         </ScrollView>
 
@@ -356,6 +494,7 @@ const styles = StyleSheet.create({
   },
   itemsList: {
     gap: 16,
+    marginBottom: 24,
   },
   itemContainer: {
     backgroundColor: '#fff',
@@ -436,6 +575,126 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#2563eb',
+  },
+  // Estilos para la sección de cupones
+  couponSection: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.07)',
+      },
+    }),
+  },
+  couponTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  appliedCouponContainer: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#86efac',
+  },
+  appliedCouponContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  appliedCouponInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  appliedCouponText: {
+    fontSize: 16,
+    color: '#059669',
+    marginLeft: 8,
+  },
+  couponCode: {
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  removeCouponButton: {
+    padding: 4,
+  },
+  couponInputContainer: {
+    gap: 12,
+  },
+  couponInputWrapper: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  couponInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#1f2937',
+  },
+  applyCouponButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  applyCouponButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  applyCouponButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  couponMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  couponMessageSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#86efac',
+  },
+  couponMessageError: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+  },
+  couponMessageText: {
+    fontSize: 14,
+    flex: 1,
+  },
+  couponMessageTextSuccess: {
+    color: '#059669',
+  },
+  couponMessageTextError: {
+    color: '#ef4444',
   },
   footer: {
     position: 'absolute',
